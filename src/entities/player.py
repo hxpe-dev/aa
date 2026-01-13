@@ -62,7 +62,7 @@ class Player(BaseEntity):
             self.direction = 1
         
         # Saut (Z/Espace ou flèche haut)
-        if keys[pygame.K_z] or keys[pygame.K_UP] or keys[pygame.K_SPACE]:
+        if keys[pygame.K_UP] or keys[pygame.K_SPACE]:
             if not self.jump_pressed:
                 self.jump_pressed = True
                 self.jump_buffer_counter = PLAYER_JUMP_BUFFER_TIME
