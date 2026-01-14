@@ -245,13 +245,7 @@ class MultiplayerGame:
         
         # Dessine les joueurs distants en cyan pour les distinguer
         for player_id, player in self.remote_players.items():
-            # Sauvegarde la couleur originale
-            original_color = player.image.get_at((0, 0))
-            # Change en cyan pour voir que c'est un joueur distant
-            player.image.fill((0, 255, 255))
             player.draw(self.screen, offset=(0, 0))
-            # Remet la couleur d'origine (important!)
-            player.image.fill(original_color)
         
         # Dessine les infos de debug
         self._draw_debug_info()

@@ -11,21 +11,21 @@ class BaseEntity(pygame.sprite.Sprite):
         # Initialise une entité à position et dimensions données
         super().__init__()
         
-        # --- Position et Dimensions ---
+        # Position et Dimensions
         self.x = float(x)
         self.y = float(y)
         self.width = width
         self.height = height
         
-        # --- Vélocité ---
+        # Vélocité
         self.velocity_x = 0.0
         self.velocity_y = 0.0
         
-        # --- État Physique ---
+        # État Physique
         self.is_grounded = False  # Au contact du sol
         self.is_falling = False   # En train de tomber
         
-        # --- Affichage ---
+        # Affichage
         self.image = pygame.Surface((width, height))
         self.image.fill((255, 0, 255))  # Magenta par défaut (placeholder)
         self.rect = self.image.get_rect(topleft=(x, y))
