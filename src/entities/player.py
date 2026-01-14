@@ -46,7 +46,11 @@ class Player(BaseEntity):
         self.collision_bottom = False
         
         # Apparence (bleu par défaut, à remplacer par sprite)
-        self.image.fill((100, 149, 237))
+        self.sprite = pygame.image.load('src\\assets\\player\\player-0\\0-Standing-0.png').convert_alpha()
+        self.sprite = pygame.transform.scale(self.sprite, (PLAYER_WIDTH, PLAYER_HEIGHT))
+        self.image = self.sprite
+
+        
     
     def handle_input(self, keys):
         # Traite les entrées du clavier pour le mouvement
@@ -95,6 +99,13 @@ class Player(BaseEntity):
         
         # Mise à jour du rect pour le rendu
         self.rect.topleft = (int(self.x), int(self.y))
+
+        # Retourne l'image en fonction de la direction
+        if self.direction == -1 :
+            self.image = pygame.transform.flip(self.sprite, True, False)
+        else :
+            self.image = self.sprite
+    
     
     def _move_and_collide(self, colliders: List[pygame.Rect]):
         # Déplace le joueur et gère les collisions séparément pour X et Y
