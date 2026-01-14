@@ -47,7 +47,8 @@ class Player(BaseEntity):
         
         # Apparence (bleu par défaut, à remplacer par sprite)
         self.sprite = pygame.image.load('src\\assets\\player\\player-0\\0-Standing-0.png').convert_alpha()
-        self.sprite = pygame.transform.scale(self.sprite, (PLAYER_WIDTH, PLAYER_HEIGHT))
+        self.sprite_size = 64
+        self.sprite = pygame.transform.scale(self.sprite, (self.sprite_size, self.sprite_size)) # taille du sprite du personnage
         self.image = self.sprite
 
         
@@ -293,22 +294,20 @@ class Player(BaseEntity):
         self.health = min(PLAYER_MAX_HEALTH, self.health + amount)
     
     def draw(self, surface: pygame.Surface, offset=(0, 0)):
-        # Dessine le joueur avec indicateurs de debug
+        render_x = self.x + offset[0] - (self.sprite_size - PLAYER_WIDTH)//2
+        render_y = self.y + offset[1] - (self.sprite_size - PLAYER_HEIGHT)
+        surface.blit(self.image, (render_x, render_y))
 
         # Dessiner le rectangle du joueur
         draw_rect = self.rect.copy()
         draw_rect.x += offset[0]
         draw_rect.y += offset[1]
-        surface.blit(self.image, draw_rect)
+        pygame.draw.rect(surface, (0, 255, 0), draw_rect, 1)
         
-        # Dessiner un indicateur de direction
-        indicator_x = draw_rect.centerx + (self.direction * 10)
-        indicator_y = draw_rect.centery
-        pygame.draw.circle(surface, (255, 0, 0), (int(indicator_x), int(indicator_y)), 3)
         
         # Afficher ligne verte si au sol (debug)
         if self.is_grounded:
-            pygame.draw.line(surface, (0, 255, 0), 
+            pygame.draw.line(surface, (255, 0, 0), 
                            (draw_rect.left, draw_rect.bottom),
                            (draw_rect.right, draw_rect.bottom), 2)
     

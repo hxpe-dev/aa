@@ -20,8 +20,8 @@ GRAVITY = 0.8
 TERMINAL_VELOCITY = 15
 
 # Paramètres du joueur - Mouvement
-PLAYER_WIDTH = 64
-PLAYER_HEIGHT = 64
+PLAYER_WIDTH = 40
+PLAYER_HEIGHT = 56
 PLAYER_SPEED = 7  # Vitesse de marche horizontale
 PLAYER_ACCELERATION = 0.5  # Accélération horizontale
 PLAYER_DECELERATION = 0.6  # Décélération horizontale
