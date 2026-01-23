@@ -4,6 +4,8 @@ import threading
 from typing import Optional, Dict
 from enum import Enum
 
+from network.utils import *
+
 
 class NetworkMode(Enum):
     SERVER = "server"
@@ -133,9 +135,11 @@ class NetworkServer:
                 # Envoie son ID au client pour qu'il sache qui il est
                 try:
                     identification = json.dumps({'__player_id__': player_id})
-                    client_socket.send(identification.encode('utf-8'))
-                except:
-                    pass
+                    #client_socket.send(identification.encode('utf-8'))
+                    send_json(client_socket, {"__player_id__": player_id})
+                except Exception as e:
+                    print("Network error:", e)
+                    break
                 
                 # Lance un thread qui va gérer ce client en continu
                 threading.Thread(
@@ -143,27 +147,23 @@ class NetworkServer:
                     args=(player_id, client_socket),
                     daemon=True
                 ).start()
-            except:
-                pass
+            except Exception as e:
+                print("Network error:", e)
+                break
     
     def _handle_client(self, player_id: int, client_socket: socket.socket):
         # Gère les messages reçus d'un client
         try:
             while self.running:
-                # Attend de recevoir des données du client (bloque ici)
-                data = client_socket.recv(1024).decode('utf-8')
-                if not data:  # Si on reçoit rien = connexion coupée
+                data = recv_json(client_socket)
+                if data is None:
                     break
-                
-                # Convertit le JSON reçu en dictionnaire Python
-                message = json.loads(data)
-                
+
                 with self.lock:
-                    # Met à jour l'état du joueur avec les données reçues
                     if player_id in self.player_states:
-                        self.player_states[player_id].from_dict(message)
-        except:
-            pass
+                        self.player_states[player_id].from_dict(data)
+        except Exception as e:
+            print("Network error:", e)
         finally:
             # Quand le client se déconnecte, on nettoie tout
             with self.lock:
@@ -189,9 +189,12 @@ class NetworkServer:
             # Envoie à tous les clients connectés
             for player_id, client in list(self.clients.items()):
                 try:
-                    client.send(message.encode('utf-8'))
-                except:
-                    pass
+                    #client.send(message.encode('utf-8'))
+                    send_json(client, states)
+                except Exception as e:
+                    print("Network error:", e)
+                    client.close()
+                    del self.clients[player_id]
     
     def get_player_states(self) -> Dict[int, PlayerState]:
         # Retourne l'état de tous les joueurs
@@ -246,30 +249,30 @@ class NetworkClient:
         try:
             while self.connected:
                 # Attend de recevoir des données du serveur (bloque ici)
-                data = self.socket.recv(4096).decode('utf-8')
-                if not data:  # Connexion coupée
+                data = recv_json(self.socket)
+                if data is None:
                     self.disconnect()
                     break
                 
-                # Convertit le JSON en dictionnaire
-                all_states = json.loads(data)
-                
                 # Cas spécial : le serveur nous envoie notre ID
-                if '__player_id__' in all_states:
+                if '__player_id__' in data:
                     with self.lock:
-                        self.player_id = all_states['__player_id__']
+                        self.player_id = data['__player_id__']
                     continue  # On passe au prochain message
                 
                 # Sinon c'est une mise à jour des états de tous les joueurs
                 with self.lock:
-                    for player_id_str, state_data in all_states.items():
+                    for player_id_str, state_data in data.items():
                         player_id = int(player_id_str)  # Convertit la clé en int
+                        if player_id == self.player_id:
+                            continue
                         # Crée l'état du joueur s'il existe pas encore
                         if player_id not in self.remote_player_states:
                             self.remote_player_states[player_id] = PlayerState(player_id)
                         # Met à jour l'état du joueur
                         self.remote_player_states[player_id].from_dict(state_data)
-        except:
+        except Exception as e:
+            print("Network error:", e)
             self.disconnect()
     
     def send_state(self, player_state: PlayerState):
@@ -280,8 +283,10 @@ class NetworkClient:
         try:
             # Convertit notre état en JSON et l'envoie au serveur
             message = json.dumps(player_state.to_dict())
-            self.socket.send(message.encode('utf-8'))
-        except:
+            #self.socket.send(message.encode('utf-8'))
+            send_json(self.socket, player_state.to_dict())
+        except Exception as e:
+            print("Network error:", e)
             self.disconnect()
     
     def get_remote_player_states(self) -> Dict[int, PlayerState]:
