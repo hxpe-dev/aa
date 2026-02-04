@@ -24,6 +24,8 @@ class BaseEntity(pygame.sprite.Sprite):
         # État Physique
         self.is_grounded = False  # Au contact du sol
         self.is_falling = False   # En train de tomber
+        self.is_walled_left = False  # Au contact d'un mur à gauche
+        self.is_walled_right = False  # Au contact d'un mur à droite
         
         # Affichage
         self.image = pygame.Surface((width, height))

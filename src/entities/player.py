@@ -2,13 +2,7 @@
 # Gère les déplacements, sauts, double saut, dash et collisions
 import pygame
 from entities.base_entity import BaseEntity
-from settings import (
-    PLAYER_WIDTH, PLAYER_HEIGHT, PLAYER_SPEED, PLAYER_ACCELERATION,
-    PLAYER_DECELERATION, PLAYER_JUMP_FORCE, PLAYER_FALL_ACCELERATION,
-    PLAYER_MAX_FALL_SPEED, PLAYER_COYOTE_TIME, PLAYER_JUMP_BUFFER_TIME,
-    PLAYER_DOUBLE_JUMP_ENABLED, PLAYER_DASH_SPEED,
-    PLAYER_DASH_DURATION, PLAYER_DASH_COOLDOWN, PLAYER_MAX_HEALTH
-)
+from settings import *
 from typing import Optional, List
 
 
@@ -31,6 +25,7 @@ class Player(BaseEntity):
         self.coyote_counter = 0  # Frames restantes pour sauter après quitter le sol
         self.jump_buffer_counter = 0  # Enregistrement anticipé du saut avant atterrissage
         self.double_jump_available = True  # Double saut disponible
+        self.wall_jump_lock_counter = 0
         
         # Dash
         self.dash_active = False  # Le dash est-il actuellement actif
@@ -116,6 +111,10 @@ class Player(BaseEntity):
         self.x += self.velocity_x
         player_rect = self.get_rect()
         
+        # Réinitialiser les flags de collision horizontale
+        self.collision_left = False
+        self.collision_right = False
+        
         # Vérifier collisions horizontales et corriger position
         for collider in colliders:
             if not player_rect.colliderect(collider):
@@ -142,7 +141,7 @@ class Player(BaseEntity):
         # Réinitialiser les flags de collision verticale
         self.collision_top = False
         self.collision_bottom = False
-        
+
         # Vérifier collisions verticales et corriger position
         for collider in colliders:
             if not player_rect.colliderect(collider):
@@ -171,6 +170,8 @@ class Player(BaseEntity):
         # Vérifier si le joueur est en contact avec le sol (collision_bottom ou velocity_y == 0 et grounded avant)
         player_rect = self.get_rect()
         self.is_grounded = False
+        self.is_walled_left = False
+        self.is_walled_right = False
         
         if self.collision_bottom:
             self.is_grounded = True
@@ -182,6 +183,12 @@ class Player(BaseEntity):
                 if test_rect.colliderect(collider):
                     self.is_grounded = True
                     break
+        
+        if self.collision_left:
+            self.is_walled_left = True
+        
+        if self.collision_right:
+            self.is_walled_right = True
     
     def _update_timers(self):
         # Mets à jour les compteurs de délai
@@ -207,6 +214,11 @@ class Player(BaseEntity):
             self.dash_available = True
     
     def _update_horizontal_movement(self):
+        # On ne déplace pas si en wall jump
+        if self.wall_jump_lock_counter > 0:
+            self.wall_jump_lock_counter -= 1
+            return
+    
         # Mets à jour le mouvement horizontal avec accélération et décélération
 
         # Déterminer la vélocité cible en fonction de l'input
@@ -235,7 +247,9 @@ class Player(BaseEntity):
         # Vérifier si le joueur peut sauter maintenant
         peut_sauter_au_sol = self.coyote_counter > 0
         peut_double_sauter = PLAYER_DOUBLE_JUMP_ENABLED and self.double_jump_available
-        peut_sauter = peut_sauter_au_sol or peut_double_sauter
+        est_sur_mur = (self.is_walled_left or self.is_walled_right) and not self.is_grounded
+        
+        peut_sauter = peut_sauter_au_sol or peut_double_sauter or est_sur_mur
         
         # Exécuter le saut si le buffer est actif et conditions remplies
         if self.jump_buffer_counter > 0 and peut_sauter:
@@ -243,17 +257,32 @@ class Player(BaseEntity):
             self.jump_buffer_counter = 0
     
     def perform_jump(self):
-        # Effectue le saut du joueur en appliquant les forces
+        # Wall Jump (Prioritaire sur le saut normal si en l'air et contre un mur)
+        # On vérifie si on n'est PAS au sol, mais contre un mur
+        if not self.is_grounded and (self.is_walled_left or self.is_walled_right):
+            
+            self.velocity_y = PLAYER_JUMP_FORCE # Force vers le haut
+            self.wall_jump_lock_counter = WALL_JUMP_LOCK_DURATION # Bloquer les inputs
+            
+            # Reset double jump allowing for chaining moves
+            self.double_jump_available = True 
 
-        self.velocity_y = PLAYER_JUMP_FORCE
-        self.is_grounded = False
-        
-        # Si on saute en l'air, on utilise le double saut
-        if self.coyote_counter <= 0:
-            self.double_jump_available = False
-        
-        # Consommer le coyote time
-        self.coyote_counter = 0
+            if self.is_walled_left:
+                # Mur à gauche -> On saute vers la DROITE (+)
+                self.velocity_x = PLAYER_SPEED 
+            elif self.is_walled_right:
+                # Mur à droite -> On saute vers la GAUCHE (-)
+                self.velocity_x = -PLAYER_SPEED
+                
+        # Saut Normal / Double Saut
+        else:
+            self.velocity_y = PLAYER_JUMP_FORCE
+            
+            # Si on saute en l'air (double saut), on le consomme
+            if self.coyote_counter <= 0:
+                self.double_jump_available = False
+                
+            self.coyote_counter = 0
     
     def _apply_gravity(self):
         # Applique la gravité avec une accélération
@@ -330,5 +359,7 @@ class Player(BaseEntity):
             'is_falling': self.is_falling,
             'double_jump_available': self.double_jump_available,
             'dash_available': self.dash_available,
+            'is_walled_left': self.is_walled_left,
+            'is_walled_right': self.is_walled_right,
             'dash_active': self.dash_active,
         }

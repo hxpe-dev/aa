@@ -269,6 +269,8 @@ class MultiplayerGame:
             f"Position: ({state['position'][0]:.1f}, {state['position'][1]:.1f})",
             f"Velocity: ({state['velocity'][0]:.2f}, {state['velocity'][1]:.2f})",
             f"Health: {state['health']}",
+            f"WL: {state['is_walled_left']}",
+            f"WR: {state['is_walled_right']}",
             f"Grounded: {state['is_grounded']}",
         ]
         
