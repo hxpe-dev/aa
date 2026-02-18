@@ -24,12 +24,15 @@ class MultiplayerGame:
         self.remote_players: Dict[int, Player] = {}  # Les joueurs des autres dictionnaire du type {id: Player}
         
         # World
-        self.tilemap = TileMap()
+        #self.tilemap = TileMap()
+        #self.colliders = self.tilemap.get_colliders()
+        
+        self.tilemap = TileMap(ldtk_path="src/world/world_design.ldtk", level_index=0, scale=2.0)
         self.colliders = self.tilemap.get_colliders()
         
         # Spawn Point
-        self.spawn_x = 100
-        self.spawn_y = 100
+        self.spawn_x = 200
+        self.spawn_y = 200
         
         # Timing Sync 
         self.sync_counter = 0

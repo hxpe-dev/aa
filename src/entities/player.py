@@ -42,7 +42,7 @@ class Player(BaseEntity):
         
         # Apparence (bleu par défaut, à remplacer par sprite)
         self.sprite = pygame.image.load('src\\assets\\player\\player-0\\0-Standing-0.png').convert_alpha()
-        self.sprite_size = 64
+        self.sprite_size = 85
         self.sprite = pygame.transform.scale(self.sprite, (self.sprite_size, self.sprite_size)) # taille du sprite du personnage
         self.image = self.sprite
 
@@ -326,19 +326,21 @@ class Player(BaseEntity):
         render_x = self.x + offset[0] - (self.sprite_size - PLAYER_WIDTH)//2
         render_y = self.y + offset[1] - (self.sprite_size - PLAYER_HEIGHT)
         surface.blit(self.image, (render_x, render_y))
+        
+        
+        draw_rect = self.rect.copy()
 
         # Dessiner le rectangle du joueur
-        draw_rect = self.rect.copy()
-        draw_rect.x += offset[0]
-        draw_rect.y += offset[1]
-        pygame.draw.rect(surface, (0, 255, 0), draw_rect, 1)
+        if SHOW_COLLIDERS:
+            draw_rect.x += offset[0]
+            draw_rect.y += offset[1]
+            pygame.draw.rect(surface, (0, 255, 0), draw_rect, 1)
         
-        
-        # Afficher ligne verte si au sol (debug)
-        if self.is_grounded:
-            pygame.draw.line(surface, (255, 0, 0), 
-                           (draw_rect.left, draw_rect.bottom),
-                           (draw_rect.right, draw_rect.bottom), 2)
+            # Afficher ligne verte si au sol (debug)
+            if self.is_grounded:
+                pygame.draw.line(surface, (255, 0, 0), 
+                            (draw_rect.left, draw_rect.bottom),
+                            (draw_rect.right, draw_rect.bottom), 2)
     
     def reset_position(self, x: float, y: float):
         # Reset la position du joueur aux coordonnées données

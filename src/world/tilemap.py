@@ -1,101 +1,98 @@
 import pygame
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+from world.ldtk_loader import LDtkLoader, LDtkLevel
 
 try:
     from settings import TILE_SIZE
 except ImportError:
-    TILE_SIZE = 32
+    TILE_SIZE = 16
 
 
-class TileMap:    
-    def __init__(self, level_data: List[List[int]] = None, tile_size: int = TILE_SIZE):
-        # Initilise un tilemap à partir de données
-        # level_data: Données 2D du niveau (0 = vide, 1 = solide)
-        # tile_size: Taille des tiles en pixels
+class TileMap:
+    def __init__(self, ldtk_path: Optional[str] = None, level_index: int = 0,
+                 scale: float = 1.0, level_data: List[List[int]] = None,
+                 tile_size: int = TILE_SIZE):
         self.tile_size = tile_size
-        
+        self._ldtk_level: Optional[LDtkLevel] = None
+        self.spawn_point: Tuple[float, float] = (100.0, 100.0)
+
+        if ldtk_path:
+            self._load_from_ldtk(ldtk_path, level_index, scale)
+        else:
+            # Fallback sur l'ancien système si pas de fichier LDtk pask jsp
+            self._load_from_grid(level_data)
+
+    def _load_from_ldtk(self, path: str, level_index: int, scale: float):
+        loader = LDtkLoader(path)
+        self._ldtk_level = loader.load_level(level_index, scale=scale)
+        self.width = self._ldtk_level.width_px
+        self.height = self._ldtk_level.height_px
+        self.spawn_point = self._ldtk_level.get_spawn_point()
+
+    def _load_from_grid(self, level_data):
         if level_data is None:
-            # Créer un niveau par défaut
             level_data = self._create_default_level()
-        
         self.level_data = level_data
-        self.height = len(level_data)
-        self.width = len(level_data[0]) if level_data else 0
-        
-        # Créer une surface contenant le rendu du tilemap
-        self.image = pygame.Surface((
-            self.width * self.tile_size,
-            self.height * self.tile_size
-        ))
-        self.image.fill((20, 20, 30))  # Fond sombre
-        
-        # Dessiner tous les tiles
-        self._draw_tiles()
-    
+        self.height = len(level_data) * self.tile_size
+        self.width = (len(level_data[0]) if level_data else 0) * self.tile_size
+        self.image = self._build_grid_surface(level_data)
+
+    def get_colliders(self) -> List[pygame.Rect]:
+        if self._ldtk_level:
+            return self._ldtk_level.get_colliders()
+        return self._get_grid_colliders()
+
+    def get_spawn_point(self) -> Tuple[float, float]:
+        return self.spawn_point
+
+    def draw(self, surface: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
+        if self._ldtk_level:
+            self._ldtk_level.draw(surface, offset)
+        else:
+            rect = self.image.get_rect(topleft=offset)
+            surface.blit(self.image, rect)
+
+    # Ancien système de grille manuelle (au cas ou)
+
     def _create_default_level(self) -> List[List[int]]:
-        # Créer un niveau de test par défaut
+        # Génère un niveau basique avec des murs sur les bords et un sol
         level = []
         for y in range(15):
             row = []
             for x in range(40):
-                # Bordures (gauche et droite)
-                if x == 0 or x == 39:
-                    row.append(1)
-                # Sol et plafond
-                elif y == 14 or y == 13:
-                    row.append(1)
-                # Plateformes de test
-                elif y == 12 and 6 <= x <= 8:
-                    row.append(1)
-                elif y == 10 and 22 <= x <= 24:
-                    row.append(1)
-                elif y == 8 and 3 <= x <= 4:
-                    row.append(1)
-                elif y == 8 and 32 <= x <= 33:
+                if x == 0 or x == 39 or y == 14 or y == 13:
                     row.append(1)
                 else:
                     row.append(0)
             level.append(row)
         return level
-    
-    def _draw_tiles(self):
-        # Dessine tous les tiles solides sur l'image du tilemap
-        for y, row in enumerate(self.level_data):
+
+    def _build_grid_surface(self, level_data) -> pygame.Surface:
+        # Dessine tous les tiles solides une seule fois sur une surface statique
+        rows = len(level_data)
+        cols = len(level_data[0]) if level_data else 0
+        surf = pygame.Surface((cols * self.tile_size, rows * self.tile_size))
+        surf.fill((20, 20, 30))
+        for y, row in enumerate(level_data):
             for x, tile in enumerate(row):
-                if tile == 1:  # Tile solide
-                    rect = pygame.Rect(
-                        x * self.tile_size,
-                        y * self.tile_size,
-                        self.tile_size,
-                        self.tile_size
-                    )
-                    # Remplir le tile avec couleur grise
-                    pygame.draw.rect(self.image, (100, 100, 100), rect)
-                    # Ajouter une bordure claire pour visibilité
-                    pygame.draw.rect(self.image, (150, 150, 150), rect, 2)
-    
-    def get_colliders(self) -> List[pygame.Rect]:
-        # Retourne la liste des rectangles de collision pour les tiles solides
+                if tile == 1:
+                    rect = pygame.Rect(x * self.tile_size, y * self.tile_size,
+                                       self.tile_size, self.tile_size)
+                    pygame.draw.rect(surf, (100, 100, 100), rect)
+                    pygame.draw.rect(surf, (150, 150, 150), rect, 2)
+        return surf
+
+    def _get_grid_colliders(self) -> List[pygame.Rect]:
+        # Parcourt la grille et retourne un rect pour chaque tile solide
         colliders = []
-        
         for y, row in enumerate(self.level_data):
             for x, tile in enumerate(row):
-                if tile == 1:  # Tile solide
-                    rect = pygame.Rect(
-                        x * self.tile_size,
-                        y * self.tile_size,
-                        self.tile_size,
-                        self.tile_size
-                    )
-                    colliders.append(rect)
-        
+                if tile == 1:
+                    colliders.append(pygame.Rect(
+                        x * self.tile_size, y * self.tile_size,
+                        self.tile_size, self.tile_size
+                    ))
         return colliders
-    
+
     def get_size(self) -> Tuple[int, int]:
-        # Retourne la taille totale du tilemap en pixels
-        return (self.width * self.tile_size, self.height * self.tile_size)
-    
-    def draw(self, surface: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
-        # Dessine le tilemap sur une surface
-        rect = self.image.get_rect(topleft=offset)
-        surface.blit(self.image, rect)
+        return (self.width, self.height)
