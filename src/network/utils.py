@@ -64,7 +64,7 @@ def recvall(sock: socket.socket, size: int):
         # On demande les bytes manquants
         packet = sock.recv(size - len(data))
         
-        # Si recv() retourne b"" → la connexion est fermée
+        # Si recv() retourne b"" -> la connexion est fermée
         if not packet:
             return None
         

@@ -41,9 +41,23 @@ class Player(BaseEntity):
         self.collision_bottom = False
         
         # Apparence (bleu par défaut, à remplacer par sprite)
-        self.sprite = pygame.image.load('src\\assets\\player\\player-0\\0-Standing-0.png').convert_alpha()
         self.sprite_size = 85
-        self.sprite = pygame.transform.scale(self.sprite, (self.sprite_size, self.sprite_size)) # taille du sprite du personnage
+        self.current_sprite_index = 0
+        self.standing_sprite = pygame.transform.scale(pygame.image.load('src\\assets\\player\\player-0\\0-Standing-0.png').convert_alpha(), (self.sprite_size, self.sprite_size))
+        self.running_sprites = [
+            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Running-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(3)
+        ]
+        self.jumping_sprites = [
+            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Jumping-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
+        ]
+        self.falling_sprites = [
+            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Falling-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(4)
+        ]
+        self.dashing_sprites = [
+            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Dashing-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(3)
+        ]
+        self.sprite = self.standing_sprite
+        self.sprite_counter = 0
         self.image = self.sprite
 
         
@@ -92,6 +106,9 @@ class Player(BaseEntity):
         
         # Appliquer le mouvement et gérer les collisions
         self._move_and_collide(colliders)
+        
+        # Update l'animation
+        self._update_animation()
         
         # Mise à jour du rect pour le rendu
         self.rect.topleft = (int(self.x), int(self.y))
@@ -301,7 +318,31 @@ class Player(BaseEntity):
             # Le dash annule la gravité
             self.velocity_x = self.dash_direction * PLAYER_DASH_SPEED
             self.velocity_y = 0
-    
+            
+    def _update_animation(self):
+        self.sprite_counter += 1
+        if self.dash_active:
+            self.current_sprite_index = (self.current_sprite_index + 1) % len(self.dashing_sprites)
+            self.sprite = self.dashing_sprites[self.current_sprite_index]
+            self.sprite_counter = 0
+        elif self.velocity_y < -0.5 and self.sprite_counter >= 5:
+            self.current_sprite_index = (self.current_sprite_index + 1) % len(self.jumping_sprites)
+            self.sprite = self.jumping_sprites[self.current_sprite_index]
+            self.sprite_counter = 0
+        elif self.velocity_y > 0.5 and self.sprite_counter >= 5:
+            self.current_sprite_index = (self.current_sprite_index + 1) % len(self.falling_sprites)
+            self.sprite = self.falling_sprites[self.current_sprite_index]
+            self.sprite_counter = 0
+        elif abs(self.velocity_x) > 1 and self.sprite_counter >= 5:
+            self.current_sprite_index = (self.current_sprite_index + 1) % len(self.running_sprites)
+            self.sprite = self.running_sprites[self.current_sprite_index]
+            self.sprite_counter = 0
+        elif self.sprite_counter >= 5:
+            self.current_sprite_index = 0
+            self.sprite = self.standing_sprite
+            self.sprite_counter = 0
+
+
     def start_dash(self):
         # Démarre un dash dans la direction du joueur
         if not self.dash_available or self.dash_active:
