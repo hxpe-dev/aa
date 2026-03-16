@@ -1,0 +1,38 @@
+// Ce fichier montre les emplacements important dans un fichier ldtk pour le charger la map dans le jeu.
+// Beaucoup de champs sont manquants, il représente que ceux qui sont utilisés dans le code de chargement de la map (ldtk_loader.py).
+// Bisou la team
+{
+  // ...
+  "levels": [
+    {
+      "identifier": "Level_0",
+      "pxWid": 960,
+			"pxHei": 480,
+      "layerInstances": [
+        {
+					"__identifier": "Collision" /* ou "AutoLayer" */, 
+					"__type": "IntGrid" /* ou "AutoLayer" */,
+					"__cWid": 40,
+					"__cHei": 20,
+					"__gridSize": 24,
+					"__pxTotalOffsetX": 0,
+					"__pxTotalOffsetY": 0,
+          "intGridCsv": [
+            // liste de chiffre (0 = case vide, 2 = collision)
+          ],
+          "autoLayerTiles": [
+            { "px": [0,0], "src": [24,24], "f": 0 /* ... */ }
+            // ...
+          ]
+        }
+      ],
+      "entityInstances": [
+        {
+          "identifier": "PlayerSpawn",
+          "px": [100, 100]
+        }
+      ]
+    }
+  ]
+  // ...
+}

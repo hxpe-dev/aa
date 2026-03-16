@@ -17,9 +17,9 @@ def send_json(sock: socket.socket, data: dict):
     message_length = len(message_bytes)
     
     # On transforme la taille en 4 bytes
-    # !  -> ordre réseau (big endian)
-    # I  -> entier non signé (4 bytes)
-    length_prefix = struct.pack("!I", message_length)
+    # ! = ordre réseau
+    # I = entier non signé (4 bytes)
+    length_prefix = struct.pack("!I", message_length) # en gros struct.pack il converti un entier en 4 bytes ("!I" = entier non signé sur 4 bytes en ordre réseau)
     
     # sendall() garantit que TOUS les bytes sont envoyés
     # Contrairement à send() qui peut envoyer seulement une partie

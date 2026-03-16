@@ -68,8 +68,8 @@ class NetworkServer:
     def start(self) -> bool:
         # Start du serv
         try:
-            # Crée le socket (c'est comme une "prise" réseau pour se connecter)
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Crée le socket TCP (c'est comme une "prise" réseau pour se connecter)
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # AF_INET = IPv4, SOCK_STREAM = TCP
             # SO_REUSEADDR permet de réutiliser le port immédiatement (sinon faut attendre parfois)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             # On attache le socket à notre adresse et port

@@ -1,18 +1,18 @@
 import json
 import pygame
 from typing import List, Tuple, Dict, Optional
+import os
 
 
 class LDtkLoader:
     def __init__(self, filepath: str):
-        # On ouvre et lit le fichier .ldtk qui est juste un JSON déguisé
+        # On ouvre et lit le fichier .ldtk qui est juste un JSON
         with open(filepath, 'r') as f:
             self.data = json.load(f)
         self.tilesets: Dict[int, pygame.Surface] = {}
         self._load_tilesets(filepath)
 
     def _load_tilesets(self, ldtk_filepath: str):
-        import os
         # On récupère le dossier du .ldtk pour résoudre les chemins relatifs des tilesets
         ldtk_dir = os.path.dirname(ldtk_filepath)
 
@@ -25,9 +25,9 @@ class LDtkLoader:
             full_path = os.path.join(ldtk_dir, rel_path)
             try:
                 img = pygame.image.load(full_path).convert_alpha()
-                self.tilesets[uid] = img  # On stocke l'image avec son uid comme clé
+                self.tilesets[uid] = img  # On stock l'image avec son uid comme clé
             except Exception as e:
-                print(f"Could not load tileset '{full_path}': {e}")
+                print(f"Erreur chargement tileset '{full_path}': {e}")
 
     def get_levels(self) -> list:
         # Retourne la liste de tous les niveaux du projet LDtk
@@ -36,7 +36,7 @@ class LDtkLoader:
     def load_level(self, level_index: int = 0, scale: float = 1.0) -> "LDtkLevel":
         levels = self.get_levels()
         if level_index >= len(levels):
-            raise IndexError(f"Level {level_index} does not exist")
+            raise IndexError(f"Level {level_index} existe pas")
         # On crée un objet LDtkLevel à partir des données brutes du niveau
         return LDtkLevel(levels[level_index], self.tilesets, scale=scale)
 
@@ -64,7 +64,7 @@ class LDtkLevel:
 
         # Surface finale sur laquelle on va tout dessiner
         self.render_surface = pygame.Surface(
-            (self.width_px, self.height_px), pygame.SRCALPHA
+            (self.width_px, self.height_px), pygame.SRCALPHA # transparent par défaut
         )
 
         # LDtk stocke les layers du dessus vers le dessous,
@@ -89,6 +89,7 @@ class LDtkLevel:
             elif layer_type == "Entities":
                 self._parse_entities_layer(layer)
 
+    # Cette fonction dessine les bonnes tiles au bon endroit
     def _render_tile_layer(self, layer: dict, use_auto: bool = False):
         tileset_uid = layer.get("__tilesetDefUid")
         if tileset_uid is None or tileset_uid not in self.tilesets:
@@ -100,7 +101,11 @@ class LDtkLevel:
         grid_size_scaled = max(1, int(grid_size * self.scale))
 
         # autoLayerTiles pour les layers auto, gridTiles pour les layers manuels
-        tiles = layer.get("autoLayerTiles", []) if use_auto else layer.get("gridTiles", [])
+        tiles = None
+        if use_auto:
+            tiles = layer.get("autoLayerTiles", []) 
+        else:
+            tiles = layer.get("gridTiles", [])
 
         for tile in tiles:
             px = tile["px"]   # Position de la tile dans le monde (avant zoom)
@@ -124,6 +129,7 @@ class LDtkLevel:
 
             self.render_surface.blit(tile_surf, (dest_x, dest_y))
 
+    # IntGrid est utilisé pour les collisions donc on crée des rects de collision ici
     def _parse_intgrid_layer(self, layer: dict):
         grid_size = layer["__gridSize"]
         c_width = layer["__cWid"]  # Largeur de la grille en nombre de cellules
