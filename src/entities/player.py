@@ -26,6 +26,7 @@ class Player(BaseEntity):
         self.jump_buffer_counter = 0  # Enregistrement anticipé du saut avant atterrissage
         self.double_jump_available = True  # Double saut disponible
         self.wall_jump_lock_counter = 0
+        self.is_wall_sliding = False
         
         # Dash
         self.dash_active = False  # Le dash est-il actuellement actif
@@ -284,16 +285,27 @@ class Player(BaseEntity):
                 
             self.coyote_counter = 0
     
+    
     def _apply_gravity(self):
         # Applique la gravité avec une accélération
+        self.is_wall_sliding = False
 
         if not self.is_grounded:
-            # Appliquer la gravité
-            self.velocity_y += PLAYER_FALL_ACCELERATION
-            
-            # Limiter la vitesse maximale de chute pour éviter les bugs
-            if self.velocity_y > PLAYER_MAX_FALL_SPEED:
-                self.velocity_y = PLAYER_MAX_FALL_SPEED
+            contre_mur_gauche = self.is_walled_left and self.input_direction == -1
+            contre_mur_droit  = self.is_walled_right and self.input_direction == 1
+
+            if contre_mur_gauche or contre_mur_droit:
+                # Wall slide : on applique quand même la gravité mais on plafonne la chute
+                self.velocity_y += PLAYER_FALL_ACCELERATION
+                if self.velocity_y > PLAYER_WALL_SLIDE_SPEED:
+                    self.velocity_y = PLAYER_WALL_SLIDE_SPEED
+                self.is_wall_sliding = True
+            else:
+                # Gravité normale
+                self.velocity_y += PLAYER_FALL_ACCELERATION
+                if self.velocity_y > PLAYER_MAX_FALL_SPEED:
+                    self.velocity_y = PLAYER_MAX_FALL_SPEED
+    
     
     def _update_dash(self):
         # Gère le mouvement du dash actif
