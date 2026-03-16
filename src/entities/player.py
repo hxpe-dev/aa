@@ -60,6 +60,10 @@ class Player(BaseEntity):
         self.sprite = self.standing_sprite
         self.sprite_counter = 0
         self.image = self.sprite
+        
+        self.jump_sound = pygame.mixer.Sound("src\\assets\\sfx\\jump.mp3")
+        self.walk_sound = pygame.mixer.Sound("src\\assets\\sfx\\footsteps.mp3")
+        self.dash_sound = pygame.mixer.Sound("src\\assets\\sfx\\dash.mp3")
 
         
     
@@ -275,6 +279,7 @@ class Player(BaseEntity):
             self.jump_buffer_counter = 0
     
     def perform_jump(self):
+        pygame.mixer.Sound.play(self.jump_sound)
         # Wall Jump (Prioritaire sur le saut normal si en l'air et contre un mur)
         # On vérifie si on n'est PAS au sol, mais contre un mur
         if not self.is_grounded and (self.is_walled_left or self.is_walled_right):
@@ -360,6 +365,7 @@ class Player(BaseEntity):
         if not self.dash_available or self.dash_active:
             return
         
+        pygame.mixer.Sound.play(self.dash_sound)
         self.dash_active = True
         self.dash_counter = PLAYER_DASH_DURATION
         self.dash_direction = self.direction if self.direction != 0 else 1
