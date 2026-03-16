@@ -4,7 +4,7 @@ from entities.player import Player
 from world.tilemap import TileMap
 from network.network_manager import NetworkMode, NetworkServer, NetworkClient, PlayerState
 from typing import Dict, Optional
-
+from entities.enemy_jeaneude import JeanEude
 
 class MultiplayerGame:    
     def __init__(self, screen, network_mode: NetworkMode = NetworkMode.OFFLINE, 
@@ -29,6 +29,12 @@ class MultiplayerGame:
         
         self.tilemap = TileMap(ldtk_path="src/world/world_design.ldtk", level_index=0, scale=2.0)
         self.colliders = self.tilemap.get_colliders()
+
+        # Ennemi Jean-Eude
+        self.enemies = [
+            JeanEude(x=400, y=200, patrol_range=150),
+            JeanEude(x=700, y=200, patrol_range=100),
+        ]
         
         # Spawn Point
         self.spawn_x = 200
@@ -190,6 +196,10 @@ class MultiplayerGame:
         if self.local_player:
             self.local_player.update(dt, self.colliders)
         
+        # Met à jour l'ennemi Jean-Eude
+        for enemy in self.enemies:
+            enemy.update(dt, self.colliders)
+
         # Vérifie les événements réseau et met à jour les joueurs distants
         if self.server:
             self._check_server_events()  # Check qui a rejoint/quitté
@@ -249,6 +259,10 @@ class MultiplayerGame:
         # Dessine les joueurs distants en cyan pour les distinguer
         for player_id, player in self.remote_players.items():
             player.draw(self.screen, offset=(0, 0))
+
+        # Dessine les ennemis Jean-Eude
+        for enemy in self.enemies:
+            enemy.draw(self.screen, offset=(0, 0))
         
         # Dessine les infos de debug
         self._draw_debug_info()

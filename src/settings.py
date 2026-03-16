@@ -43,3 +43,8 @@ TILE_SIZE = 32
 
 # Debug
 SHOW_COLLIDERS = True
+
+# Paramètres de l'IA de Jean-Eude
+JEANEUDE_WIDTH  = 32
+JEANEUDE_HEIGHT = 32
+JEANEUDE_SPEED  = 2.0   # pixels/frame, à ajuster selon ton gameplay
