@@ -88,6 +88,8 @@ body {
 .cta-button,
 .download-button {
     padding: 1rem 2.5rem;
+    margin-right: 10px;
+    margin-left: 10px;
     border: none;
     border-radius: 6px;
     background: linear-gradient(135deg, #1e3a8a, #3b82f6);
