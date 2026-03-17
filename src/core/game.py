@@ -5,6 +5,7 @@ from world.tilemap import TileMap
 from network.network_manager import NetworkMode, NetworkServer, NetworkClient, PlayerState
 from typing import Dict, Optional
 from entities.enemy_jeaneude import JeanEude
+from core.save_manager import SaveManager
 
 class MultiplayerGame:    
     def __init__(self, screen, network_mode: NetworkMode = NetworkMode.OFFLINE, 
@@ -16,6 +17,7 @@ class MultiplayerGame:
         self.running = True
         self.network_mode = network_mode
         
+
         # Composants Network
         self.server: Optional[NetworkServer] = None
         self.client: Optional[NetworkClient] = None
@@ -43,11 +45,15 @@ class MultiplayerGame:
         # Timing Sync 
         self.sync_counter = 0
         self.sync_interval = 3  # On envoie notre état toutes les 3 frames (~50ms à 60 FPS)
+
+        #sauvegarde
+        self.save_manager = SaveManager()
         
         # Network Info Display
         self.connection_status = "Initializing..."
         
         self._initialize_network()
+
     
     def _initialize_network(self):
         """Initialize network based on mode"""
@@ -71,6 +77,7 @@ class MultiplayerGame:
             self.local_player_id = 0
             self.local_player = Player(self.spawn_x, self.spawn_y)
             self.connection_status = "Offline mode"
+            self.save_manager.load(self)  # charge si une save existe
     
     def connect_as_client(self, server_ip: str) -> bool:
         # Renvoie True si connexion réussie, False sinon
@@ -179,9 +186,13 @@ class MultiplayerGame:
             if event.key == pygame.K_ESCAPE:
                 self.running = False
             elif event.key == pygame.K_r:
-                # Reset la position du joueur au spawn
+                #Reset la position du joueur au spawn
                 if self.local_player:
                     self.local_player.reset_position(self.spawn_x, self.spawn_y)
+            elif event.key == pygame.K_F5:
+                self.save_manager.save(self)   #sauvegarde manuelle
+            elif event.key == pygame.K_F9:
+                self.save_manager.load(self)   #chargement manuel
     
     def handle_input(self):
         # Inputs clavier
@@ -212,6 +223,10 @@ class MultiplayerGame:
         if self.sync_counter >= self.sync_interval:
             self.sync_counter = 0
             self._sync_network()  # Envoie notre état sur le réseau
+        
+        if self.network_mode == NetworkMode.OFFLINE:
+            self.save_manager.update(self, dt)  # autosave + playtime
+
     
     def _sync_network(self):
         # Envoie l'état du joueur local sur le réseau

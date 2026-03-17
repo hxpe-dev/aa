@@ -49,3 +49,9 @@ SHOW_COLLIDERS = True
 JEANEUDE_WIDTH  = 32
 JEANEUDE_HEIGHT = 32
 JEANEUDE_SPEED  = 2.0   # pixels/frame, à ajuster selon ton gameplay
+
+# sauvegarde
+AUTOSAVE_INTERVAL = 300  # toutes les 300 frames (environ 5 secondes à 60 FPS)
+SAVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")
+SAVE_FILE = os.path.join(SAVE_DIR, "save.json")
+
