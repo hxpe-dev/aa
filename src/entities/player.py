@@ -58,6 +58,9 @@ class Player(BaseEntity):
         self.dashing_sprites = [
             pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Dashing-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(3)
         ]
+        self.sliding_sprites = [
+            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Sliding-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
+        ]
         self.sprite = self.standing_sprite
         self.sprite_counter = 0
         self.image = self.sprite
@@ -65,9 +68,9 @@ class Player(BaseEntity):
         self.jump_sound = pygame.mixer.Sound("src\\assets\\sfx\\jump.mp3")
         self.walk_sound = pygame.mixer.Sound("src\\assets\\sfx\\footsteps.mp3")
         self.dash_sound = pygame.mixer.Sound("src\\assets\\sfx\\dash.mp3")
-        pygame.mixer.Sound.set_volume(self.jump_sound, 0.3)
-        pygame.mixer.Sound.set_volume(self.walk_sound, 0.3)
-        pygame.mixer.Sound.set_volume(self.dash_sound, 0.2)
+        pygame.mixer.Sound.set_volume(self.jump_sound, 0.2)
+        pygame.mixer.Sound.set_volume(self.walk_sound, 0.2)
+        pygame.mixer.Sound.set_volume(self.dash_sound, 0.1)
 
         
     
@@ -347,6 +350,10 @@ class Player(BaseEntity):
                 self.current_sprite_index = (self.current_sprite_index + 1) % len(self.dashing_sprites)
                 self.sprite = self.dashing_sprites[self.current_sprite_index]
                 self.sprite_counter = 0
+        elif self.is_wall_sliding and self.sprite_counter >= 5:
+            self.current_sprite_index = (self.current_sprite_index + 1) % len(self.sliding_sprites)
+            self.sprite = self.sliding_sprites[self.current_sprite_index]
+            self.sprite_counter = 0
         elif self.velocity_y < -0.5 and self.sprite_counter >= 5:
             self.current_sprite_index = (self.current_sprite_index + 1) % len(self.jumping_sprites)
             self.sprite = self.jumping_sprites[self.current_sprite_index]

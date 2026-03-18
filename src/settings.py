@@ -46,9 +46,9 @@ TILE_SIZE = 32
 SHOW_COLLIDERS = True
 
 # Paramètres de l'IA de Jean-Eude
-JEANEUDE_WIDTH  = 32
-JEANEUDE_HEIGHT = 32
-JEANEUDE_SPEED  = 2.0   # pixels/frame, à ajuster selon ton gameplay
+JEANEUDE_WIDTH  = 48
+JEANEUDE_HEIGHT = 48
+JEANEUDE_SPEED  = 2.0   # pixels/frame
 
 # sauvegarde
 AUTOSAVE_INTERVAL = 300  # toutes les 300 frames (environ 5 secondes à 60 FPS)

@@ -10,13 +10,21 @@ class JeanEude(BaseEntity):
     def __init__(self, x: float, y: float, patrol_range: float = 150.0):
         super().__init__(x, y, JEANEUDE_WIDTH, JEANEUDE_HEIGHT)
 
-        # Apparence (rouge pour l'instant)
-        self.image.fill((220, 50, 50))
-
+        # Apparence
+        self.sprite_size = 105
+        self.current_sprite_index = 0
+        self.sprite_counter = 0
+        self.direction = 1 # 1 = droite, -1 = gauche
+        
+        self.walking_sprites = [
+            pygame.transform.scale(pygame.image.load(f'src\\assets\\mobs\\skeleton\\Walking\\Walking-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
+        ]
+        self.sprite = self.walking_sprites[0]
+        self.image = self.sprite
+        
         # IA de patrouille
         self.patrol_origin_x = x          # Centre de la zone de patrouille
         self.patrol_range = patrol_range  # Distance max de chaque côté
-        self.direction = 1                # 1 = droite, -1 = gauche
 
         # État de collision
         self.collision_left = False
@@ -33,14 +41,21 @@ class JeanEude(BaseEntity):
         self._update_patrol()
         self._apply_gravity()
         self._move_and_collide(colliders)
+        self._update_animation()
 
         self.rect.topleft = (int(self.x), int(self.y))
+        
+        # Retourne le sprite en fn de la direction
+        if self.direction == -1:
+            self.image = pygame.transform.flip(self.sprite, True, False)
+        else:
+            self.image = self.sprite
+
 
     # Patrouille gauche/droite de Jean-Eude
 
     def _update_patrol(self):
-        """Avance dans la direction courante ; fait demi-tour aux limites
-        de la zone ou si un mur est touché."""
+        # Avance dans la direction courante. fait demi-tour aux limites de la zone ou si un mur est touché.
 
         # Demi-tour si on dépasse la zone de patrouille
         if self.x > self.patrol_origin_x + self.patrol_range:
@@ -120,12 +135,21 @@ class JeanEude(BaseEntity):
 
         self.is_walled_left = self.collision_left
         self.is_walled_right = self.collision_right
+        
+    def _update_animation(self):
+        self.sprite_counter += 1
+        if self.sprite_counter >= 8:
+            self.current_sprite_index = (self.current_sprite_index + 1) % len(self.walking_sprites)
+            self.sprite = self.walking_sprites[self.current_sprite_index]
+            self.sprite_counter = 0
 
     def draw(self, surface: pygame.Surface, offset=(0, 0)):
-        draw_rect = self.rect.copy()
-        draw_rect.x += offset[0]
-        draw_rect.y += offset[1]
-        surface.blit(self.image, draw_rect)
+        render_x = self.x + offset[0] - (self.sprite_size - JEANEUDE_WIDTH) // 2
+        render_y = self.y + offset[1] - (self.sprite_size - JEANEUDE_HEIGHT)
+        surface.blit(self.image, (render_x, render_y))
 
         if SHOW_COLLIDERS:
+            draw_rect = self.rect.copy()
+            draw_rect.x += offset[0]
+            draw_rect.y += offset[1]
             pygame.draw.rect(surface, (255, 100, 0), draw_rect, 1)
