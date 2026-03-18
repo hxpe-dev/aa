@@ -17,11 +17,9 @@ class SaveManager:
             "player": {
                 "x": player.x,
                 "y": player.y,
+                "level": player.level_index,
                 "health": player.health,
             },
-            #"level": {
-            #    "index": game.tilemap.level_index,  # adapte selon ton TileMap
-            #},
             "meta": {
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
                 "playtime_seconds": int(self.playtime),
@@ -42,9 +40,16 @@ class SaveManager:
         with open(SAVE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # Restaure l'état du joueur
+        # Restaure l'état du jeu
         p = data["player"]
+        level_index = p["level"]
+        
+        game.tilemap.load_level(level_index)
+        game.colliders = game.tilemap.get_colliders()
+        game.current_level_index = level_index
+        
         game.local_player.reset_position(p["x"], p["y"])
+        game.local_player.level_index = p["level"]
         game.local_player.health = p["health"]
 
         self.playtime = data["meta"].get("playtime_seconds", 0)

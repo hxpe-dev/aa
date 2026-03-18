@@ -343,9 +343,10 @@ class Player(BaseEntity):
     def _update_animation(self):
         self.sprite_counter += 1
         if self.dash_active:
-            self.current_sprite_index = (self.current_sprite_index + 1) % len(self.dashing_sprites)
-            self.sprite = self.dashing_sprites[self.current_sprite_index]
-            self.sprite_counter = 0
+            if self.sprite_counter >= 5:
+                self.current_sprite_index = (self.current_sprite_index + 1) % len(self.dashing_sprites)
+                self.sprite = self.dashing_sprites[self.current_sprite_index]
+                self.sprite_counter = 0
         elif self.velocity_y < -0.5 and self.sprite_counter >= 5:
             self.current_sprite_index = (self.current_sprite_index + 1) % len(self.jumping_sprites)
             self.sprite = self.jumping_sprites[self.current_sprite_index]
