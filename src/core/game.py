@@ -285,6 +285,7 @@ class MultiplayerGame:
             self.colliders = self.tilemap.get_colliders()
             self.enemies = []
             self.current_level_index = level_index
+            self.local_player.level_index = level_index
 
             # Positionne le joueur a la porte d'arrivee
             dest_pos = self.tilemap.find_door_position(dest_iid)
