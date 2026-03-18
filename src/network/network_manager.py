@@ -24,6 +24,7 @@ class PlayerState:
         self.velocity_y = 0.0
         self.health = 100
         self.direction = 1
+        self.level_index = 0
     
     def to_dict(self) -> Dict:
         return {
@@ -33,7 +34,8 @@ class PlayerState:
             'velocity_x': self.velocity_x,
             'velocity_y': self.velocity_y,
             'health': self.health,
-            'direction': self.direction
+            'direction': self.direction,
+            'level_index': self.level_index
         }
     
     def from_dict(self, data: Dict):
@@ -45,6 +47,7 @@ class PlayerState:
         self.velocity_y = data.get('velocity_y', self.velocity_y)
         self.health = data.get('health', self.health)
         self.direction = data.get('direction', self.direction)
+        self.level_index = data.get('level_index', self.level_index)
 
 
 class NetworkServer:

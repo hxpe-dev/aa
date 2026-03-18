@@ -25,12 +25,10 @@ class MultiplayerGame:
         self.local_player: Optional[Player] = None  # Notre joueur local
         self.remote_players: Dict[int, Player] = {}  # Les joueurs des autres dictionnaire du type {id: Player}
         
-        # World
-        #self.tilemap = TileMap()
-        #self.colliders = self.tilemap.get_colliders()
-        
+        # World        
         self.tilemap = TileMap(ldtk_path="src/world/world_design.ldtk", level_index=0, scale=2.0)
         self.colliders = self.tilemap.get_colliders()
+        self.current_level_index = 0
 
         # Ennemi Jean-Eude
         self.enemies = [
@@ -56,7 +54,7 @@ class MultiplayerGame:
 
     
     def _initialize_network(self):
-        """Initialize network based on mode"""
+        # init du system multi
         if self.network_mode == NetworkMode.SERVER:
             # Mode serveur : on crée un serveur
             self.server = NetworkServer(host='0.0.0.0', port=5555)
@@ -138,6 +136,7 @@ class MultiplayerGame:
             remote_player.velocity_y = state.velocity_y
             remote_player.health = state.health
             remote_player.direction = state.direction
+            remote_player.level_index = state.level_index
             # Met à jour le rect pour l'affichage
             remote_player.rect.topleft = (int(remote_player.x), int(remote_player.y))
     
@@ -176,8 +175,9 @@ class MultiplayerGame:
             remote_player.velocity_y = state.velocity_y
             remote_player.health = state.health
             remote_player.direction = state.direction
+            remote_player.level_index = state.level_index
             remote_player.rect.topleft = (int(remote_player.x), int(remote_player.y))
-    
+            
     def handle_event(self, event):
         # Events pygame
         if event.type == pygame.QUIT:
@@ -210,6 +210,8 @@ class MultiplayerGame:
         # Met à jour l'ennemi Jean-Eude
         for enemy in self.enemies:
             enemy.update(dt, self.colliders)
+            
+        self._check_door_transitions()
 
         # Vérifie les événements réseau et met à jour les joueurs distants
         if self.server:
@@ -243,6 +245,7 @@ class MultiplayerGame:
         local_state.velocity_y = self.local_player.velocity_y
         local_state.health = self.local_player.health
         local_state.direction = self.local_player.direction
+        local_state.level_index = self.current_level_index
         
         if self.server:
             # Si on est serveur : on met à jour notre propre état et on broadcast à tous
@@ -253,6 +256,55 @@ class MultiplayerGame:
         elif self.client:
             # Si on est client : on envoie juste notre état au serveur
             self.client.send_state(local_state)
+            
+    def _check_door_transitions(self):
+        # Vérifie si le joueur touche une porte et change de niveau
+        if not self.local_player:
+            return
+
+        player_rect = self.local_player.get_rect()
+
+        for door in self.tilemap.get_doors():
+            if not player_rect.colliderect(door["rect"]):
+                continue
+
+            dest_iid = door["dest_entity_iid"]
+            dest_level_iid = door["dest_level_iid"]
+
+            if dest_iid is None or dest_level_iid is None:
+                continue
+
+            # Trouve l'index du niveau cible
+            level_index = self.tilemap.get_level_index_by_iid(dest_level_iid)
+            if level_index == -1:
+                print(f"Niveau introuvable pour iid {dest_level_iid}")
+                return
+
+            # Charge le nouveau niveau
+            self.tilemap.load_level(level_index)
+            self.colliders = self.tilemap.get_colliders()
+            self.enemies = []
+            self.current_level_index = level_index
+
+            # Positionne le joueur a la porte d'arrivee
+            dest_pos = self.tilemap.find_door_position(dest_iid)
+            if dest_pos:
+                door_x, door_y = dest_pos
+                # Décale le joueur a cote de la porte
+                level_width = self.tilemap.width
+                if door_x < 50:  # Porte a gauche du niveau = on spawn a droite de la porte
+                    spawn_x = door_x + 80
+                elif door_x > level_width - 50:  # Porte a droite = on spawn a gauche
+                    spawn_x = door_x - 80
+                else:
+                    spawn_x = door_x
+                self.local_player.reset_position(spawn_x, door_y)
+            else:
+                spawn = self.tilemap.get_spawn_point()
+                self.local_player.reset_position(spawn[0], spawn[1])
+
+            print(f"Transition vers niveau {level_index}")
+            return
     
     def check_global_collisions(self):
         # Check les collisions globales (pas encore implementé TODO)
@@ -273,7 +325,8 @@ class MultiplayerGame:
         
         # Dessine les joueurs distants en cyan pour les distinguer
         for player_id, player in self.remote_players.items():
-            player.draw(self.screen, offset=(0, 0))
+            if player.level_index == self.current_level_index:
+                player.draw(self.screen, offset=(0, 0))
 
         # Dessine les ennemis Jean-Eude
         for enemy in self.enemies:

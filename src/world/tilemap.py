@@ -23,8 +23,10 @@ class TileMap:
             self._load_from_grid(level_data)
 
     def _load_from_ldtk(self, path: str, level_index: int, scale: float):
-        loader = LDtkLoader(path)
-        self._ldtk_level = loader.load_level(level_index, scale=scale)
+        self._ldtk_loader = LDtkLoader(path)
+        self._ldtk_path = path
+        self._scale = scale
+        self._ldtk_level = self._ldtk_loader.load_level(level_index, scale=scale)
         self.width = self._ldtk_level.width_px
         self.height = self._ldtk_level.height_px
         self.spawn_point = self._ldtk_level.get_spawn_point()
@@ -36,6 +38,20 @@ class TileMap:
         self.height = len(level_data) * self.tile_size
         self.width = (len(level_data[0]) if level_data else 0) * self.tile_size
         self.image = self._build_grid_surface(level_data)
+        
+
+    def load_level(self, level_index: int):
+        # Charge un autre niveau en réutilisant le mm loader
+        self._ldtk_level = self._ldtk_loader.load_level(level_index, scale=self._scale)
+        self.width = self._ldtk_level.width_px
+        self.height = self._ldtk_level.height_px
+        self.spawn_point = self._ldtk_level.get_spawn_point()
+        
+    def find_door_position(self, entity_iid: str):
+        return self._ldtk_loader.find_door_position(entity_iid, self._scale)
+
+    def get_level_index_by_iid(self, level_iid: str) -> int:
+        return self._ldtk_loader.get_level_index_by_iid(level_iid)
 
     def get_colliders(self) -> List[pygame.Rect]:
         if self._ldtk_level:
@@ -44,6 +60,11 @@ class TileMap:
 
     def get_spawn_point(self) -> Tuple[float, float]:
         return self.spawn_point
+    
+    def get_doors(self):
+        if self._ldtk_level:
+            return self._ldtk_level.get_doors()
+        return []
 
     def draw(self, surface: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
         if self._ldtk_level:

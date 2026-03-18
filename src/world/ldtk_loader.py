@@ -39,6 +39,26 @@ class LDtkLoader:
             raise IndexError(f"Level {level_index} existe pas")
         # On crée un objet LDtkLevel à partir des données brutes du niveau
         return LDtkLevel(levels[level_index], self.tilesets, scale=scale)
+    
+    def find_door_position(self, entity_iid: str, scale: float = 1.0):
+        # Trouve la position x y d'une porte à partir de son iid, dans tous les niveaux
+        for level_data in self.data.get("levels", []):
+            for layer in level_data.get("layerInstances", []):
+                if layer["__type"] != "Entities":
+                    continue
+                for entity in layer.get("entityInstances", []):
+                    if entity["iid"] == entity_iid:
+                        px = entity["px"]
+                        return (float(px[0]) * scale, float(px[1]) * scale)
+        return None
+    
+    
+    def get_level_index_by_iid(self, level_iid: str) -> int:
+        # Retourne l'index d'un niveau a partir de son iid
+        for i, level in enumerate(self.data.get("levels", [])):
+            if level["iid"] == level_iid:
+                return i
+        return -1
 
 
 class LDtkLevel:
@@ -54,6 +74,7 @@ class LDtkLevel:
         self.render_surface: Optional[pygame.Surface] = None
         self.colliders: List[pygame.Rect] = []
         self.spawn_point: Tuple[float, float] = (100.0, 100.0)
+        self.doors: List[dict] = []
 
         self._parse_layers()
 
@@ -155,19 +176,38 @@ class LDtkLevel:
             self.colliders.append(rect)
 
     def _parse_entities_layer(self, layer: dict):
-        # On parcourt les entités placées dans LDtk (spawn, ennemis, checkpoints...)
         for entity in layer.get("entityInstances", []):
             identifier = entity["__identifier"]
             px = entity["px"]
             if identifier == "PlayerSpawn":
-                # On scale aussi la position du spawn
                 self.spawn_point = (float(px[0]) * self.scale, float(px[1]) * self.scale)
+            elif identifier == "Door":
+                dest_iid = None
+                dest_level_iid = None
+                for field in entity.get("fieldInstances", []):
+                    if field["__identifier"] == "Entity_ref" and field["__value"]:
+                        dest_iid = field["__value"].get("entityIid")
+                        dest_level_iid = field["__value"].get("levelIid")
+                self.doors.append({
+                    "iid": entity["iid"],
+                    "rect": pygame.Rect(
+                        int(px[0] * self.scale),
+                        int(px[1] * self.scale),
+                        int(entity["width"] * self.scale),
+                        int(entity["height"] * self.scale),
+                    ),
+                    "dest_entity_iid": dest_iid,
+                    "dest_level_iid": dest_level_iid,
+                })
 
     def get_colliders(self) -> List[pygame.Rect]:
         return self.colliders
 
     def get_spawn_point(self) -> Tuple[float, float]:
         return self.spawn_point
+    
+    def get_doors(self) -> List[dict]:
+        return self.doors
 
     def draw(self, surface: pygame.Surface, offset: Tuple[float, float] = (0, 0)):
         if self.render_surface:

@@ -15,6 +15,7 @@ class Player(BaseEntity):
         # État du joueur
         self.health = PLAYER_MAX_HEALTH
         self.direction = 1  # 1 = droite, -1 = gauche
+        self.level_index = 0
         
         # Mouvement Horizontal
         self.input_direction = 0  # -1 (gauche), 0 (arrêt), ou 1 (droite)
