@@ -64,6 +64,9 @@ class Player(BaseEntity):
         self.jump_sound = pygame.mixer.Sound("src\\assets\\sfx\\jump.mp3")
         self.walk_sound = pygame.mixer.Sound("src\\assets\\sfx\\footsteps.mp3")
         self.dash_sound = pygame.mixer.Sound("src\\assets\\sfx\\dash.mp3")
+        pygame.mixer.Sound.set_volume(self.jump_sound, 0.3)
+        pygame.mixer.Sound.set_volume(self.walk_sound, 0.3)
+        pygame.mixer.Sound.set_volume(self.dash_sound, 0.2)
 
         
     
