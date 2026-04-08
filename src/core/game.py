@@ -203,10 +203,20 @@ class MultiplayerGame:
         # Met à jour notre joueur local
         if self.local_player:
             self.local_player.update(dt, self.colliders)
+            
+        # Passe tous les joueurs visibles aux ennemis pour la détection
+        all_players = []
+
+        if self.local_player:
+            all_players.append(self.local_player)
+
+        for p in self.remote_players.values():
+            if p.level_index == self.current_level_index:
+                all_players.append(p)
         
         # Met à jour l'ennemi Jean-Eude
         for enemy in self.enemies:
-            enemy.update(dt, self.colliders)
+            enemy.update(dt, self.colliders, all_players)
             
         self._check_door_transitions()
 

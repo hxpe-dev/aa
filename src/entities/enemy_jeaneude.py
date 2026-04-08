@@ -5,6 +5,14 @@ from settings import *
 from typing import Optional, List
 
 
+# États de l'IA de Jean-Eude
+class EnemyState:
+    PATROL = "patrol"   # Patrouille gauche/droite de base
+    ALERT = "alert"    # A détecté le joueur, pause avant de charger
+    CHASE = "chase"    # Poursuit le joueur
+    ATTACK = "attack"   # Attaque (cooldown après un coup)
+    RETURN = "return"   # Retourne à l'origine après avoir perdu le joueur
+
 class JeanEude(BaseEntity):
 
     def __init__(self, x: float, y: float, patrol_range: float = 150.0):
@@ -23,8 +31,33 @@ class JeanEude(BaseEntity):
         self.image = self.sprite
         
         # IA de patrouille
-        self.patrol_origin_x = x          # Centre de la zone de patrouille
-        self.patrol_range = patrol_range  # Distance max de chaque côté
+        self.patrol_origin_x = x # Centre de la zone de patrouille
+        self.patrol_range = patrol_range # Distance max de chaque côté
+        
+        self.state = EnemyState.PATROL
+        
+        # Détection : champ de vision horizontal (pixels) et vertical (pixels)
+        self.detection_range_x = 220
+        self.detection_range_y = 80
+        
+        # Poursuite : distance à laquelle Jean-Eude abandonne
+        self.chase_lose_range = 320
+        
+        # Attaque
+        self.attack_range = 40 # Distance à partir de laquelle il attaque
+        self.attack_damage = 10
+        self.attack_cooldown = 90
+        self.attack_timer = 0
+        
+        # Alert (pause avant de charger)
+        self.alert_duration = 40 # Frames de pause à la détection
+        self.alert_timer = 0
+        
+        # Vitesse de retour au point d'origine
+        self.return_speed = JEANEUDE_SPEED * 0.8
+        
+        # Référence au joueur cible
+        self.target_player = None
 
         # État de collision
         self.collision_left = False
@@ -34,11 +67,15 @@ class JeanEude(BaseEntity):
 
     # Mise à jour principale
 
-    def update(self, dt: float, colliders: Optional[List[pygame.Rect]] = None):
+    def update(self, dt: float, colliders: Optional[List[pygame.Rect]] = None, players: Optional[list] = None):
         if colliders is None:
             colliders = []
-
-        self._update_patrol()
+            
+        if players:
+            self.target_player = self._find_closest_player(players)
+            
+        self._run_state_machine()
+        
         self._apply_gravity()
         self._move_and_collide(colliders)
         self._update_animation()
@@ -50,36 +87,157 @@ class JeanEude(BaseEntity):
             self.image = pygame.transform.flip(self.sprite, True, False)
         else:
             self.image = self.sprite
+            
+            
+    def _find_closest_player(self, players: list):
+        closest = None
+        closest_dist = float('inf')
+        for player in players:
+            if player is None:
+                continue
+            dx = player.x - self.x
+            dist = abs(dx)
+            if dist < closest_dist:
+                closest_dist = dist
+                closest = player
+        return closest
+    
+    def _run_state_machine(self):
+        if self.state == EnemyState.PATROL:
+            self._state_patrol()
+ 
+        elif self.state == EnemyState.ALERT:
+            self._state_alert()
+ 
+        elif self.state == EnemyState.CHASE:
+            self._state_chase()
+ 
+        elif self.state == EnemyState.ATTACK:
+            self._state_attack()
+ 
+        elif self.state == EnemyState.RETURN:
+            self._state_return()
 
-
-    # Patrouille gauche/droite de Jean-Eude
-
-    def _update_patrol(self):
-        # Avance dans la direction courante. fait demi-tour aux limites de la zone ou si un mur est touché.
-
-        # Demi-tour si on dépasse la zone de patrouille
+    def _state_patrol(self):
+        # Patrouille gauche/droite classique
         if self.x > self.patrol_origin_x + self.patrol_range:
             self.direction = -1
         elif self.x < self.patrol_origin_x - self.patrol_range:
             self.direction = 1
-
-        # Demi-tour si mur devant
+ 
         if self.direction == 1 and self.collision_right:
             self.direction = -1
         elif self.direction == -1 and self.collision_left:
             self.direction = 1
-
+ 
         self.velocity_x = self.direction * JEANEUDE_SPEED
+ 
+        # Transition -> ALERT si le joueur est détecté
+        if self._can_detect_player():
+            self.alert_timer = self.alert_duration
+            self.velocity_x = 0
+            self.state = EnemyState.ALERT
+            
+    def _state_alert(self):
+        # Pause avant de charger (donne un signal visuel au joueur)
+        self.velocity_x = 0
+        self.alert_timer -= 1
+ 
+        # Se tourne vers le joueur pendant la pause
+        if self.target_player:
+            self.direction = 1 if self.target_player.x > self.x else -1
+ 
+        if self.alert_timer <= 0:
+            self.state = EnemyState.CHASE
+            
+    def _state_chase(self):
+        if not self.target_player:
+            self.state = EnemyState.RETURN
+            return
+ 
+        dx = self.target_player.x - self.x
+        dy = self.target_player.y - self.y
+        dist_x = abs(dx)
+        dist_y = abs(dy)
+ 
+        # Perd le joueur -> retour
+        if dist_x > self.chase_lose_range or dist_y > self.detection_range_y * 2:
+            self.state = EnemyState.RETURN
+            return
+ 
+        # Assez proche pour attaquer
+        if dist_x <= self.attack_range and dist_y <= self.detection_range_y:
+            self.state = EnemyState.ATTACK
+            return
+ 
+        # Poursuite
+        self.direction = 1 if dx > 0 else -1
+        self.velocity_x = self.direction * JEANEUDE_SPEED * 1.4 # Un peu plus rapide en chasse
+ 
+        # Demi tour si mur
+        if self.direction == 1 and self.collision_right:
+            self.direction = -1
+        elif self.direction == -1 and self.collision_left:
+            self.direction = 1
+            
+    def _state_attack(self):
+        self.velocity_x = 0  # S'arrête pour attaquer
+ 
+        # Décrémente le cooldown
+        self.attack_timer = max(0, self.attack_timer - 1)
+ 
+        if self.attack_timer == 0:
+            # Inflige des dégâts si le joueur est encore à portée
+            if self.target_player:
+                dx = abs(self.target_player.x - self.x)
+                dy = abs(self.target_player.y - self.y)
+                if dx <= self.attack_range and dy <= self.detection_range_y:
+                    self.target_player.take_damage(self.attack_damage)
+                    print(f"Jean-Eude a attaqué le joueur ! ({self.attack_damage} dégâts)")
+            self.attack_timer = self.attack_cooldown
+            # Retour en CHASE après l'attaque
+            self.state = EnemyState.CHASE
+            
+    def _state_return(self):
+        dx = self.patrol_origin_x - self.x
+ 
+        if abs(dx) < 5:
+            # Arrivé a l'origine
+            self.x = self.patrol_origin_x
+            self.velocity_x = 0
+            self.state = EnemyState.PATROL
+            return
+ 
+        if dx > 0:
+            self.direction = 1
+        else:
+            self.direction = -1
+
+        self.velocity_x = self.direction * self.return_speed
+ 
+        # Si le joueur se rapproche a nouveau pendant le retour -> redétection
+        if self._can_detect_player():
+            self.alert_timer = self.alert_duration // 2 # Pause plus courte
+            self.state = EnemyState.ALERT
+            
+    def _can_detect_player(self) -> bool:
+        if not self.target_player:
+            return False
+        dx = abs(self.target_player.x - self.x)
+        dy = abs(self.target_player.y - self.y)
+        
+        # Vérifie que le joueur est dans le champ de vision ET du même côté que la direction
+        in_front = (self.target_player.x > self.x) == (self.direction == 1)
+        return dx <= self.detection_range_x and dy <= self.detection_range_y and in_front
+
 
     # Gravité appliqué a Jean-Eude
-
     def _apply_gravity(self):
         if not self.is_grounded:
-            self.velocity_y += PLAYER_FALL_ACCELERATION         # On utilise la meme gravité que le joueur
+            self.velocity_y += PLAYER_FALL_ACCELERATION # On utilise la meme gravité que le joueur
             self.velocity_y = min(self.velocity_y, PLAYER_MAX_FALL_SPEED)
 
     # Déplacement et collisions, la même logique que Player
-
     def _move_and_collide(self, colliders: List[pygame.Rect]):
         # Mouvement horizontal
         self.x += self.velocity_x
