@@ -31,10 +31,7 @@ class MultiplayerGame:
         self.current_level_index = 0
 
         # Ennemi Jean-Eude
-        self.enemies = [
-            JeanEude(x=400, y=200, patrol_range=150),
-            JeanEude(x=700, y=200, patrol_range=100),
-        ]
+        self.enemies = self._spawn_enemies_from_map()
         
         # Spawn Point
         self.spawn_x = 200
@@ -257,6 +254,12 @@ class MultiplayerGame:
             # Si on est client : on envoie juste notre état au serveur
             self.client.send_state(local_state)
             
+    def _spawn_enemies_from_map(self) -> list:
+        enemies = []
+        for spawn in self.tilemap.get_enemy_spawns():
+            enemies.append(JeanEude(x=spawn["x"], y=spawn["y"], patrol_range=150))
+        return enemies
+            
     def _check_door_transitions(self):
         # Vérifie si le joueur touche une porte et change de niveau
         if not self.local_player:
@@ -283,7 +286,7 @@ class MultiplayerGame:
             # Charge le nouveau niveau
             self.tilemap.load_level(level_index)
             self.colliders = self.tilemap.get_colliders()
-            self.enemies = []
+            self.enemies = self._spawn_enemies_from_map()
             self.current_level_index = level_index
             self.local_player.level_index = level_index
 

@@ -52,6 +52,11 @@ class TileMap:
 
     def get_level_index_by_iid(self, level_iid: str) -> int:
         return self._ldtk_loader.get_level_index_by_iid(level_iid)
+    
+    def get_enemy_spawns(self) -> list:
+        if self._ldtk_level:
+            return self._ldtk_level.get_enemy_spawns()
+        return []
 
     def get_colliders(self) -> List[pygame.Rect]:
         if self._ldtk_level:

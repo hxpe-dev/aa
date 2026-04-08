@@ -74,6 +74,7 @@ class LDtkLevel:
         self.render_surface: Optional[pygame.Surface] = None
         self.colliders: List[pygame.Rect] = []
         self.spawn_point: Tuple[float, float] = (100.0, 100.0)
+        self.enemy_spawns: List[dict] = []
         self.doors: List[dict] = []
 
         self._parse_layers()
@@ -199,6 +200,14 @@ class LDtkLevel:
                     "dest_entity_iid": dest_iid,
                     "dest_level_iid": dest_level_iid,
                 })
+            elif identifier == "Ennemi":
+                self.enemy_spawns.append({
+                    "x": float(px[0]) * self.scale,
+                    "y": float(px[1]) * self.scale,
+                })
+
+    def get_enemy_spawns(self) -> List[dict]:
+        return self.enemy_spawns
 
     def get_colliders(self) -> List[pygame.Rect]:
         return self.colliders

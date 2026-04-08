@@ -11,9 +11,77 @@
 	"iid": "2ccd38f0-d380-11f0-8cf8-2dea3d7460a7",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 415,
+	"nextUid": 417,
 	"identifierStyle": "Capitalize",
-	"toc": [],
+	"toc": [ {
+		"identifier": "Player",
+		"instances": [],
+		"instancesData": [{ "iids": {
+			"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+			"levelIid": "2ccd8710-d380-11f0-8cf8-8bc6818399cd",
+			"layerIid": "f24203e0-21a0-11f1-99d3-115491c28555",
+			"entityIid": "c7d1a160-21a0-11f1-951f-c926cfc3e1a2"
+		}, "worldX": 72, "worldY": 144, "widPx": 24, "heiPx": 24, "fields" : {} }]
+	}, {
+		"identifier": "Ennemi",
+		"instances": [],
+		"instancesData": [
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "2ccd8710-d380-11f0-8cf8-8bc6818399cd",
+				"layerIid": "f24203e0-21a0-11f1-99d3-115491c28555",
+				"entityIid": "2d387e20-21a0-11f1-951f-6bd0c07efc50"
+			}, "worldX": 672, "worldY": 168, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "2ccd8710-d380-11f0-8cf8-8bc6818399cd",
+				"layerIid": "f24203e0-21a0-11f1-99d3-115491c28555",
+				"entityIid": "325feb90-21a0-11f1-951f-fb693c843e92"
+			}, "worldX": 480, "worldY": 240, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "2ccd8710-d380-11f0-8cf8-8bc6818399cd",
+				"layerIid": "f24203e0-21a0-11f1-99d3-115491c28555",
+				"entityIid": "342c9540-21a0-11f1-951f-53b42da26705"
+			}, "worldX": 240, "worldY": 336, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "2ccd8710-d380-11f0-8cf8-8bc6818399cd",
+				"layerIid": "f24203e0-21a0-11f1-99d3-115491c28555",
+				"entityIid": "378fe480-21a0-11f1-951f-1d6af97018ee"
+			}, "worldX": 840, "worldY": 384, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "e0190780-d380-11f0-8cf8-a9a7ddcdcf05",
+				"layerIid": "f2422af0-21a0-11f1-99d3-61067dc0c5f2",
+				"entityIid": "3d083110-21a0-11f1-951f-6511f2b24198"
+			}, "worldX": 1440, "worldY": 72, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "e0190780-d380-11f0-8cf8-a9a7ddcdcf05",
+				"layerIid": "f2422af0-21a0-11f1-99d3-61067dc0c5f2",
+				"entityIid": "3dc7b080-21a0-11f1-951f-bb8911e24761"
+			}, "worldX": 1728, "worldY": 168, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "e0190780-d380-11f0-8cf8-a9a7ddcdcf05",
+				"layerIid": "f2422af0-21a0-11f1-99d3-61067dc0c5f2",
+				"entityIid": "42b87d90-21a0-11f1-951f-dbe08541c078"
+			}, "worldX": 1272, "worldY": 432, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "e0190780-d380-11f0-8cf8-a9a7ddcdcf05",
+				"layerIid": "f2422af0-21a0-11f1-99d3-61067dc0c5f2",
+				"entityIid": "46552c50-21a0-11f1-951f-5b41c38a54e9"
+			}, "worldX": 1056, "worldY": 192, "widPx": 24, "heiPx": 24, "fields" : {} },
+			{ "iids": {
+				"worldIid": "2ccd6000-d380-11f0-8cf8-6d44689a12aa",
+				"levelIid": "e0190780-d380-11f0-8cf8-a9a7ddcdcf05",
+				"layerIid": "f2422af0-21a0-11f1-99d3-61067dc0c5f2",
+				"entityIid": "491780a0-21a0-11f1-951f-4f2a36a8e93f"
+			}, "worldX": 1776, "worldY": 432, "widPx": 24, "heiPx": 24, "fields" : {} }
+		]
+	} ],
 	"worldLayout": "Free",
 	"worldGridWidth": 256,
 	"worldGridHeight": 256,
@@ -1658,6 +1726,76 @@
 					"tilesetUid": null
 				}
 			]
+		},
+		{
+			"identifier": "Player",
+			"uid": 415,
+			"tags": [],
+			"exportToToc": true,
+			"allowOutOfBounds": false,
+			"doc": null,
+			"width": 24,
+			"height": 24,
+			"resizableX": false,
+			"resizableY": false,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"keepAspectRatio": false,
+			"tileOpacity": 1,
+			"fillOpacity": 1,
+			"lineOpacity": 1,
+			"hollow": false,
+			"color": "#BE4A2F",
+			"renderMode": "Rectangle",
+			"showName": true,
+			"tilesetId": null,
+			"tileRenderMode": "FitInside",
+			"tileRect": null,
+			"uiTileRect": null,
+			"nineSliceBorders": [],
+			"maxCount": 1,
+			"limitScope": "PerWorld",
+			"limitBehavior": "MoveLastOne",
+			"pivotX": 0,
+			"pivotY": 0,
+			"fieldDefs": []
+		},
+		{
+			"identifier": "Ennemi",
+			"uid": 416,
+			"tags": [],
+			"exportToToc": true,
+			"allowOutOfBounds": false,
+			"doc": null,
+			"width": 24,
+			"height": 24,
+			"resizableX": false,
+			"resizableY": false,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"keepAspectRatio": false,
+			"tileOpacity": 1,
+			"fillOpacity": 1,
+			"lineOpacity": 1,
+			"hollow": false,
+			"color": "#E43B44",
+			"renderMode": "Rectangle",
+			"showName": true,
+			"tilesetId": null,
+			"tileRenderMode": "FitInside",
+			"tileRect": null,
+			"uiTileRect": null,
+			"nineSliceBorders": [],
+			"maxCount": 0,
+			"limitScope": "PerLevel",
+			"limitBehavior": "MoveLastOne",
+			"pivotX": 0,
+			"pivotY": 0,
+			"fieldDefs": []
 		}
 	], "tilesets": [
 		{
@@ -1774,6 +1912,86 @@
 							}] }],
 							"__worldX": 948,
 							"__worldY": 96
+						},
+						{
+							"__identifier": "Player",
+							"__grid": [3,6],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#BE4A2F",
+							"iid": "c7d1a160-21a0-11f1-951f-c926cfc3e1a2",
+							"width": 24,
+							"height": 24,
+							"defUid": 415,
+							"px": [72,144],
+							"fieldInstances": [],
+							"__worldX": 72,
+							"__worldY": 144
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [28,7],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "2d387e20-21a0-11f1-951f-6bd0c07efc50",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [672,168],
+							"fieldInstances": [],
+							"__worldX": 672,
+							"__worldY": 168
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [20,10],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "325feb90-21a0-11f1-951f-fb693c843e92",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [480,240],
+							"fieldInstances": [],
+							"__worldX": 480,
+							"__worldY": 240
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [10,14],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "342c9540-21a0-11f1-951f-53b42da26705",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [240,336],
+							"fieldInstances": [],
+							"__worldX": 240,
+							"__worldY": 336
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [35,16],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "378fe480-21a0-11f1-951f-1d6af97018ee",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [840,384],
+							"fieldInstances": [],
+							"__worldX": 840,
+							"__worldY": 384
 						}
 					]
 				},
@@ -3135,6 +3353,86 @@
 							}] }],
 							"__worldX": 972,
 							"__worldY": 96
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [20,3],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "3d083110-21a0-11f1-951f-6511f2b24198",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [480,72],
+							"fieldInstances": [],
+							"__worldX": 1440,
+							"__worldY": 72
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [32,7],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "3dc7b080-21a0-11f1-951f-bb8911e24761",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [768,168],
+							"fieldInstances": [],
+							"__worldX": 1728,
+							"__worldY": 168
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [13,18],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "42b87d90-21a0-11f1-951f-dbe08541c078",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [312,432],
+							"fieldInstances": [],
+							"__worldX": 1272,
+							"__worldY": 432
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [4,8],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "46552c50-21a0-11f1-951f-5b41c38a54e9",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [96,192],
+							"fieldInstances": [],
+							"__worldX": 1056,
+							"__worldY": 192
+						},
+						{
+							"__identifier": "Ennemi",
+							"__grid": [34,18],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#E43B44",
+							"iid": "491780a0-21a0-11f1-951f-4f2a36a8e93f",
+							"width": 24,
+							"height": 24,
+							"defUid": 416,
+							"px": [816,432],
+							"fieldInstances": [],
+							"__worldX": 1776,
+							"__worldY": 432
 						}
 					]
 				},
