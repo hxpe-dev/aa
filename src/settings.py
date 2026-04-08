@@ -50,6 +50,9 @@ JEANEUDE_WIDTH  = 48
 JEANEUDE_HEIGHT = 48
 JEANEUDE_SPEED  = 2.0   # pixels/frame
 
+# Synchro réseau
+NETWORK_SYNC_INTERVAL = 2
+
 # sauvegarde
 AUTOSAVE_INTERVAL = 300  # toutes les 300 frames (environ 5 secondes à 60 FPS)
 SAVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")

@@ -39,7 +39,6 @@ class MultiplayerGame:
         
         # Timing Sync 
         self.sync_counter = 0
-        self.sync_interval = 3  # On envoie notre état toutes les 3 frames (~50ms à 60 FPS)
 
         #sauvegarde
         self.save_manager = SaveManager()
@@ -87,6 +86,44 @@ class MultiplayerGame:
             self.connection_status = f"Failed to connect to {server_ip}"
             return False
     
+    
+    # Applique un PlayerState (position + animation) a un objet Player remote
+    def _apply_state_to_player(self, player: Player, state: PlayerState):
+        player.x = state.x
+        player.y = state.y
+        player.velocity_x = state.velocity_x
+        player.velocity_y = state.velocity_y
+        player.health = state.health
+        player.direction = state.direction
+        player.level_index = state.level_index
+        player.rect.topleft = (int(player.x), int(player.y))
+ 
+        # Applique l'etat d'animation reçu
+        player.dash_active = state.dash_active
+        player.is_wall_sliding = state.is_wall_sliding
+        player.is_grounded = state.is_grounded
+ 
+        # Choisit le bon sprite selon l'état reçu
+        anim = state.anim_state
+        frame = state.anim_frame
+ 
+        sprites_map = {
+            "running": player.running_sprites,
+            "jumping": player.jumping_sprites,
+            "falling": player.falling_sprites,
+            "dashing": player.dashing_sprites,
+            "sliding": player.sliding_sprites,
+            "standing": [player.standing_sprite],
+        }
+        sprite_list = sprites_map.get(anim, [player.standing_sprite])
+        safe_frame = frame % len(sprite_list)
+        player.sprite = sprite_list[safe_frame]
+ 
+        if player.direction == -1:
+            player.image = pygame.transform.flip(player.sprite, True, False)
+        else:
+            player.image = player.sprite
+    
     def _check_server_events(self):
         # On check pour de nouveaux joueurs qui rejoignent/quittent (côté serveur)
         if not self.server:
@@ -124,18 +161,8 @@ class MultiplayerGame:
             # Si c'est un nouveau joueur distant, on le crée
             if player_id not in self.remote_players:
                 self.remote_players[player_id] = Player(state.x, state.y)
-            
-            # Met à jour la position et l'état du joueur distant
-            remote_player = self.remote_players[player_id] # ceci est une référence donc si on modifie remote_player ça modifie le self.remove_players
-            remote_player.x = state.x
-            remote_player.y = state.y
-            remote_player.velocity_x = state.velocity_x
-            remote_player.velocity_y = state.velocity_y
-            remote_player.health = state.health
-            remote_player.direction = state.direction
-            remote_player.level_index = state.level_index
-            # Met à jour le rect pour l'affichage
-            remote_player.rect.topleft = (int(remote_player.x), int(remote_player.y))
+                
+            self._apply_state_to_player(self.remote_players[player_id], state)
     
     def _update_client_players(self):
         # Mets à jour les joueurs à partir de l'état du client (côté client)
@@ -164,16 +191,8 @@ class MultiplayerGame:
             # Crée ou met à jour le joueur distant
             if player_id not in self.remote_players:
                 self.remote_players[player_id] = Player(state.x, state.y)
-            
-            remote_player = self.remote_players[player_id] # ceci est une référence donc si on modifie remote_player ça modifie le self.remove_players
-            remote_player.x = state.x
-            remote_player.y = state.y
-            remote_player.velocity_x = state.velocity_x
-            remote_player.velocity_y = state.velocity_y
-            remote_player.health = state.health
-            remote_player.direction = state.direction
-            remote_player.level_index = state.level_index
-            remote_player.rect.topleft = (int(remote_player.x), int(remote_player.y))
+                
+            self._apply_state_to_player(self.remote_players[player_id], state)
             
     def handle_event(self, event):
         # Events pygame
@@ -229,7 +248,7 @@ class MultiplayerGame:
         
         # Synchronisation réseau, on envoie pas à chaque frame pour économiser la bande passante
         self.sync_counter += 1
-        if self.sync_counter >= self.sync_interval:
+        if self.sync_counter >= NETWORK_SYNC_INTERVAL:
             self.sync_counter = 0
             self._sync_network()  # Envoie notre état sur le réseau
         
@@ -253,6 +272,12 @@ class MultiplayerGame:
         local_state.health = self.local_player.health
         local_state.direction = self.local_player.direction
         local_state.level_index = self.current_level_index
+        
+        local_state.anim_state = self.local_player.current_anim_state
+        local_state.anim_frame = self.local_player.current_sprite_index
+        local_state.is_grounded = self.local_player.is_grounded
+        local_state.dash_active = self.local_player.dash_active
+        local_state.is_wall_sliding = self.local_player.is_wall_sliding
         
         if self.server:
             # Si on est serveur : on met à jour notre propre état et on broadcast à tous

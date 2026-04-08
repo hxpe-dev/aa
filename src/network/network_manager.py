@@ -25,6 +25,11 @@ class PlayerState:
         self.health = 100
         self.direction = 1
         self.level_index = 0
+        self.anim_state = "standing"
+        self.anim_frame = 0
+        self.is_grounded = False
+        self.dash_active = False
+        self.is_wall_sliding = False
     
     def to_dict(self) -> Dict:
         return {
@@ -35,7 +40,12 @@ class PlayerState:
             'velocity_y': self.velocity_y,
             'health': self.health,
             'direction': self.direction,
-            'level_index': self.level_index
+            'level_index': self.level_index,
+            'anim_state': self.anim_state,
+            'anim_frame': self.anim_frame,
+            'is_grounded': self.is_grounded,
+            'dash_active': self.dash_active,
+            'is_wall_sliding': self.is_wall_sliding,
         }
     
     def from_dict(self, data: Dict):
@@ -48,6 +58,11 @@ class PlayerState:
         self.health = data.get('health', self.health)
         self.direction = data.get('direction', self.direction)
         self.level_index = data.get('level_index', self.level_index)
+        self.anim_state = data.get('anim_state', self.anim_state)
+        self.anim_frame = data.get('anim_frame', self.anim_frame)
+        self.is_grounded = data.get('is_grounded', self.is_grounded)
+        self.dash_active = data.get('dash_active', self.dash_active)
+        self.is_wall_sliding = data.get('is_wall_sliding', self.is_wall_sliding)
 
 
 class NetworkServer:

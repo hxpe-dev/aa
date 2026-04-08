@@ -65,6 +65,8 @@ class Player(BaseEntity):
         self.sprite_counter = 0
         self.image = self.sprite
         
+        self.current_anim_state = "standing"
+        
         self.jump_sound = pygame.mixer.Sound("src\\assets\\sfx\\jump.mp3")
         self.walk_sound = pygame.mixer.Sound("src\\assets\\sfx\\footsteps.mp3")
         self.dash_sound = pygame.mixer.Sound("src\\assets\\sfx\\dash.mp3")
@@ -346,27 +348,33 @@ class Player(BaseEntity):
     def _update_animation(self):
         self.sprite_counter += 1
         if self.dash_active:
+            self.current_anim_state = "dashing"
             if self.sprite_counter >= 5:
                 self.current_sprite_index = (self.current_sprite_index + 1) % len(self.dashing_sprites)
                 self.sprite = self.dashing_sprites[self.current_sprite_index]
                 self.sprite_counter = 0
         elif self.is_wall_sliding and self.sprite_counter >= 5:
+            self.current_anim_state = "sliding"
             self.current_sprite_index = (self.current_sprite_index + 1) % len(self.sliding_sprites)
             self.sprite = self.sliding_sprites[self.current_sprite_index]
             self.sprite_counter = 0
         elif self.velocity_y < -0.5 and self.sprite_counter >= 5:
+            self.current_anim_state = "jumping"
             self.current_sprite_index = (self.current_sprite_index + 1) % len(self.jumping_sprites)
             self.sprite = self.jumping_sprites[self.current_sprite_index]
             self.sprite_counter = 0
         elif self.velocity_y > 0.5 and self.sprite_counter >= 5:
+            self.current_anim_state = "falling"
             self.current_sprite_index = (self.current_sprite_index + 1) % len(self.falling_sprites)
             self.sprite = self.falling_sprites[self.current_sprite_index]
             self.sprite_counter = 0
         elif abs(self.velocity_x) > 1 and self.sprite_counter >= 5:
+            self.current_anim_state = "running"
             self.current_sprite_index = (self.current_sprite_index + 1) % len(self.running_sprites)
             self.sprite = self.running_sprites[self.current_sprite_index]
             self.sprite_counter = 0
         elif self.sprite_counter >= 5:
+            self.current_anim_state   = "standing"
             self.current_sprite_index = 0
             self.sprite = self.standing_sprite
             self.sprite_counter = 0
