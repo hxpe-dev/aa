@@ -438,9 +438,9 @@ class MultiplayerGame:
         if self.local_player:
             self.local_player.reset_position(self.spawn_x, self.spawn_y)
             self.local_player.health = PLAYER_MAX_HEALTH
-        # Respawn les ennemis en offline ou si tout le monde est mort en multi (finalement ne pas respawn les ennemis c bien je pense, le code reste là au cas ou)
-        # if self.network_mode == NetworkMode.OFFLINE or all_dead:
-        #     self.enemies = self._spawn_enemies_from_map()
+        # Respawn les ennemis en offline ou si tout le monde est mort en multi
+        if self.network_mode == NetworkMode.OFFLINE or all_dead:
+            self.enemies = self._spawn_enemies_from_map()
 
     def draw(self):
         # Rendu graphique du jeu
