@@ -56,6 +56,10 @@ class JeanEude(BaseEntity):
         # Vitesse de retour au point d'origine
         self.return_speed = JEANEUDE_SPEED * 0.8
         
+        # Vie
+        self.health = JEANEUDE_MAX_HEALTH
+        self.is_dead = False
+
         # Référence au joueur cible
         self.target_player = None
 
@@ -65,9 +69,47 @@ class JeanEude(BaseEntity):
         self.collision_top = False
         self.collision_bottom = False
 
+    def take_damage(self, damage: int):
+        # Inflige des dégâts à Jean-Eude
+        self.health = max(0, self.health - damage)
+        if self.health <= 0:
+            self.is_dead = True
+
+    def get_net_state(self) -> dict:
+        # Retourne l'état pour la synchro réseau
+        return {
+            'x': self.x,
+            'y': self.y,
+            'direction': self.direction,
+            'state': self.state,
+            'anim_frame': self.current_sprite_index,
+            'health': self.health,
+            'is_dead': self.is_dead,
+        }
+
+    def apply_net_state(self, data: dict):
+        # Applique un état reçu du serveur
+        self.x = data.get('x', self.x)
+        self.y = data.get('y', self.y)
+        self.direction = data.get('direction', self.direction)
+        self.state = data.get('state', self.state)
+        self.health = data.get('health', self.health)
+        self.is_dead = data.get('is_dead', self.is_dead)
+        frame = data.get('anim_frame', 0)
+        self.current_sprite_index = frame % len(self.walking_sprites)
+        self.sprite = self.walking_sprites[self.current_sprite_index]
+        self.rect.topleft = (int(self.x), int(self.y))
+        if self.direction == -1:
+            self.image = pygame.transform.flip(self.sprite, True, False)
+        else:
+            self.image = self.sprite
+
     # Mise à jour principale
 
     def update(self, dt: float, colliders: Optional[List[pygame.Rect]] = None, players: Optional[list] = None):
+        if self.is_dead:
+            return
+
         if colliders is None:
             colliders = []
             
@@ -302,6 +344,9 @@ class JeanEude(BaseEntity):
             self.sprite_counter = 0
 
     def draw(self, surface: pygame.Surface, offset=(0, 0)):
+        if self.is_dead:
+            return
+
         render_x = self.x + offset[0] - (self.sprite_size - JEANEUDE_WIDTH) // 2
         render_y = self.y + offset[1] - (self.sprite_size - JEANEUDE_HEIGHT)
         surface.blit(self.image, (render_x, render_y))

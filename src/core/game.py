@@ -37,8 +37,12 @@ class MultiplayerGame:
         self.spawn_x = 200
         self.spawn_y = 200
         
-        # Timing Sync 
+        # Timing Sync
         self.sync_counter = 0
+
+        # Game over
+        self.game_over = False
+        self.all_players_dead = False
 
         #sauvegarde
         self.save_manager = SaveManager()
@@ -202,8 +206,9 @@ class MultiplayerGame:
             if event.key == pygame.K_ESCAPE:
                 self.running = False
             elif event.key == pygame.K_r:
-                #Reset la position du joueur au spawn
-                if self.local_player:
+                if self.game_over:
+                    self._restart_game()
+                elif self.local_player:
                     self.local_player.reset_position(self.spawn_x, self.spawn_y)
             elif event.key == pygame.K_F5:
                 self.save_manager.save(self)   #sauvegarde manuelle
@@ -218,26 +223,57 @@ class MultiplayerGame:
     
     def update(self, dt: float):
         # Logique d'update de la syncrho
-        
-        # Met à jour notre joueur local
-        if self.local_player:
-            self.local_player.update(dt, self.colliders)
-            
+
+        # Vérifie si le joueur est mort
+        if self.local_player and self.local_player.health <= 0 and not self.game_over:
+            self.game_over = True
+
+        # Vérifie si tous les joueurs sont morts (multi seulement)
+        if self.game_over and self.remote_players and not self.all_players_dead:
+            if all(p.health <= 0 for p in self.remote_players.values()):
+                self.all_players_dead = True
+
+        if not self.game_over:
+            # Met à jour notre joueur local
+            if self.local_player:
+                self.local_player.update(dt, self.colliders)
+
+            # Check attaque du joueur vs ennemis (une seule fois par attaque)
+            if self.local_player:
+                attack_rect = self.local_player.get_attack_rect()
+                if attack_rect:
+                    for i, enemy in enumerate(self.enemies):
+                        if not enemy.is_dead and enemy not in self.local_player.attack_hit_enemies:
+                            if attack_rect.colliderect(enemy.get_rect()):
+                                self.local_player.attack_hit_enemies.append(enemy)
+                                if self.client:
+                                    # Client : on envoie l'attaque au serveur, lui applique les dégâts
+                                    self.client.send_attack(i, PLAYER_ATTACK_DAMAGE)
+                                else:
+                                    # Offline ou serveur : on applique directement
+                                    enemy.take_damage(PLAYER_ATTACK_DAMAGE)
+
+            self._check_door_transitions()
+
         # Passe tous les joueurs visibles aux ennemis pour la détection
         all_players = []
-
         if self.local_player:
             all_players.append(self.local_player)
-
         for p in self.remote_players.values():
             if p.level_index == self.current_level_index:
                 all_players.append(p)
-        
+
         # Met à jour l'ennemi Jean-Eude
         for enemy in self.enemies:
             enemy.update(dt, self.colliders, all_players)
-            
-        self._check_door_transitions()
+
+        # Serveur : applique les attaques reçues des clients
+        if self.server:
+            for attack in self.server.get_pending_attacks():
+                idx = attack.get('enemy_index', -1)
+                dmg = attack.get('damage', 0)
+                if 0 <= idx < len(self.enemies):
+                    self.enemies[idx].take_damage(dmg)
 
         # Vérifie les événements réseau et met à jour les joueurs distants
         if self.server:
@@ -245,13 +281,20 @@ class MultiplayerGame:
             self._update_server_players()  # Met à jour les positions des autres
         elif self.client:
             self._update_client_players()  # Met à jour les positions depuis le serveur
-        
+            # Applique les états des ennemis reçus du serveur
+            enemy_states = self.client.get_enemy_states()
+            if enemy_states:
+                for state in enemy_states:
+                    idx = state.get('index', -1)
+                    if 0 <= idx < len(self.enemies):
+                        self.enemies[idx].apply_net_state(state)
+
         # Synchronisation réseau, on envoie pas à chaque frame pour économiser la bande passante
         self.sync_counter += 1
         if self.sync_counter >= NETWORK_SYNC_INTERVAL:
             self.sync_counter = 0
             self._sync_network()  # Envoie notre état sur le réseau
-        
+
         if self.network_mode == NetworkMode.OFFLINE:
             self.save_manager.update(self, dt)  # autosave + playtime
 
@@ -283,7 +326,18 @@ class MultiplayerGame:
             # Si on est serveur : on met à jour notre propre état et on broadcast à tous
             if self.local_player_id is not None:
                 self.server.player_states[self.local_player_id] = local_state
-            self.server.broadcast_state()  # Envoie à tous les clients
+            
+            
+            # Collecte les états des ennemis pour la synchro
+            enemy_states = []
+
+            for index, enemy in enumerate(self.enemies):
+                current_state = enemy.get_net_state()
+                new_state_dict = {"index": index}
+                new_state_dict.update(current_state)
+                enemy_states.append(new_state_dict)                
+
+            self.server.broadcast_state(enemy_states=enemy_states)  # Envoie à tous les clients
         
         elif self.client:
             # Si on est client : on envoie juste notre état au serveur
@@ -349,9 +403,58 @@ class MultiplayerGame:
         # Check les collisions globales (pas encore implementé TODO)
         pass
     
+    def _draw_game_over(self):
+        # Ecran de fin quand le joueur est mort
+        self.screen.fill(BLACK)
+        font_big = pygame.font.Font(None, 120)
+        font_small = pygame.font.Font(None, 40)
+        text = font_big.render("GAME OVER", True, RED)
+        text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 60))
+        self.screen.blit(text, text_rect)
+        sub = font_small.render("R pour réapparaitre | ESC pour quitter", True, WHITE)
+        sub_rect = sub.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 40))
+        self.screen.blit(sub, sub_rect)
+
+    def _draw_all_dead(self):
+        # Ecran special quand tous les joueurs sont morts en multi
+        self.screen.fill((20, 0, 0))
+        font_big = pygame.font.Font(None, 100)
+        font_small = pygame.font.Font(None, 40)
+        text = font_big.render("DEFAITE TOTALE", True, (200, 50, 50))
+        text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 80))
+        self.screen.blit(text, text_rect)
+        sub1 = font_small.render("Tous les joueurs sont morts.", True, WHITE)
+        sub1_rect = sub1.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 10))
+        self.screen.blit(sub1, sub1_rect)
+        sub2 = font_small.render("R pour recommencer | ESC pour quitter", True, GRAY)
+        sub2_rect = sub2.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 55))
+        self.screen.blit(sub2, sub2_rect)
+
+    def _restart_game(self):
+        # Remet le jeu a zero apres game over
+        self.game_over = False
+        all_dead = self.all_players_dead
+        self.all_players_dead = False
+        if self.local_player:
+            self.local_player.reset_position(self.spawn_x, self.spawn_y)
+            self.local_player.health = PLAYER_MAX_HEALTH
+        # Respawn les ennemis en offline ou si tout le monde est mort en multi (finalement ne pas respawn les ennemis c bien je pense, le code reste là au cas ou)
+        # if self.network_mode == NetworkMode.OFFLINE or all_dead:
+        #     self.enemies = self._spawn_enemies_from_map()
+
     def draw(self):
         # Rendu graphique du jeu
-        
+
+        if self.all_players_dead:
+            self._draw_all_dead()
+            pygame.display.flip()
+            return
+
+        if self.game_over:
+            self._draw_game_over()
+            pygame.display.flip()
+            return
+
         # Background
         self.screen.fill(BLACK)
         
@@ -362,9 +465,9 @@ class MultiplayerGame:
         if self.local_player:
             self.local_player.draw(self.screen, offset=(0, 0))
         
-        # Dessine les joueurs distants en cyan pour les distinguer
+        # Dessine les joueurs distants (seulement s'ils sont vivants)
         for player_id, player in self.remote_players.items():
-            if player.level_index == self.current_level_index:
+            if player.level_index == self.current_level_index and player.health > 0:
                 player.draw(self.screen, offset=(0, 0))
 
         # Dessine les ennemis Jean-Eude

@@ -82,6 +82,7 @@ class NetworkServer:
         # Listes simples pour savoir qui a rejoint/quitté, tu les check dans ta boucle de jeu
         self.new_players = []  # Les joueurs qui viennent d'arriver
         self.left_players = []  # Les joueurs qui viennent de partir
+        self.pending_attacks = []  # Attaques envoyées par les clients à traiter
     
     def start(self) -> bool:
         # Start du serv
@@ -178,7 +179,9 @@ class NetworkServer:
                     break
 
                 with self.lock:
-                    if player_id in self.player_states:
+                    if "__attack__" in data:
+                        self.pending_attacks.append(data["__attack__"])
+                    elif player_id in self.player_states:
                         self.player_states[player_id].from_dict(data)
         except Exception as e:
             print("Network error:", e)
@@ -195,19 +198,18 @@ class NetworkServer:
                     del self.player_states[player_id]
                 self.left_players.append(player_id)  # Marque qu'il est parti
     
-    def broadcast_state(self):
-        # Envoie l'état de tous les joueurs à tous les clients
+    def broadcast_state(self, enemy_states=None):
+        # Envoie l'état de tous les joueurs (et ennemis) à tous les clients
         with self.lock:
-            # Convertit tous les états en dictionnaires pour l'envoi
             states = {pid: state.to_dict() for pid, state in self.player_states.items()}
-        
-        # Convertit le tout en JSON (format texte)
-        message = json.dumps(states)
+
+        # Ajoute les états des ennemis si fournis
+        if enemy_states is not None:
+            states["__enemies__"] = enemy_states
+
         with self.lock:
-            # Envoie à tous les clients connectés
             for player_id, client in list(self.clients.items()):
                 try:
-                    #client.send(message.encode('utf-8'))
                     send_json(client, states)
                 except Exception as e:
                     print("Network error:", e)
@@ -218,6 +220,13 @@ class NetworkServer:
         # Retourne l'état de tous les joueurs
         with self.lock:
             return dict(self.player_states)  # Retourne une copie du dictionnaire
+
+    def get_pending_attacks(self) -> list:
+        # Retourne les attaques envoyées par les clients depuis le dernier check
+        with self.lock:
+            attacks = list(self.pending_attacks)
+            self.pending_attacks = []
+            return attacks
 
 
 class NetworkClient:
@@ -232,6 +241,7 @@ class NetworkClient:
         self.player_id: Optional[int] = None  # Notre ID sera donné par le serveur
         self.local_player_state: Optional[PlayerState] = None
         self.remote_player_states: Dict[int, PlayerState] = {}  # États de tous les autres joueurs
+        self.latest_enemy_states = []  # Derniers états des ennemis reçus du serveur
         self.lock = threading.Lock()
     
     def connect(self) -> bool:
@@ -281,6 +291,10 @@ class NetworkClient:
                 # Sinon c'est une mise à jour des états de tous les joueurs
                 with self.lock:
                     for player_id_str, state_data in data.items():
+                        # Clé spéciale pour les ennemis
+                        if player_id_str == "__enemies__":
+                            self.latest_enemy_states = state_data
+                            continue
                         player_id = int(player_id_str)  # Convertit la clé en int
                         if player_id == self.player_id:
                             continue
@@ -311,3 +325,18 @@ class NetworkClient:
         # Retourne l'état de tous les joueurs
         with self.lock:
             return dict(self.remote_player_states)  # Retourne une copie
+
+    def send_attack(self, enemy_index: int, damage: int):
+        # Envoie une attaque sur un ennemi au serveur
+        if not self.connected:
+            return
+        try:
+            send_json(self.socket, {"__attack__": {"enemy_index": enemy_index, "damage": damage}})
+        except Exception as e:
+            print("Network error:", e)
+            self.disconnect()
+
+    def get_enemy_states(self) -> list:
+        # Retourne les derniers états des ennemis reçus du serveur
+        with self.lock:
+            return list(self.latest_enemy_states)

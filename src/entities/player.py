@@ -29,6 +29,12 @@ class Player(BaseEntity):
         self.wall_jump_lock_counter = 0
         self.is_wall_sliding = False
         
+        # Attaque
+        self.attack_active = False
+        self.attack_timer = 0
+        self.attack_cooldown_counter = 0
+        self.attack_hit_enemies = []  # ennemis déjà touchés pendant une attaque
+
         # Dash
         self.dash_active = False  # Le dash est-il actuellement actif
         self.dash_direction = 1  # Direction du dash (1 = droite, -1 = gauche)
@@ -100,6 +106,10 @@ class Player(BaseEntity):
         # Dash (Shift gauche ou droit)
         if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
             self.start_dash()
+
+        # Attaque (J ou clic gauche)
+        if keys[pygame.K_j] or pygame.mouse.get_pressed()[0]:
+            self.start_attack()
     
     def update(self, dt: float, colliders: Optional[List[pygame.Rect]] = None):
         # Met à jour le jouer chaque frame
@@ -241,8 +251,15 @@ class Player(BaseEntity):
         
         # Gestion du cooldown du dash
         self.dash_cooldown_counter = max(0, self.dash_cooldown_counter - 1)
-        if self.dash_cooldown_counter == 0: 
+        if self.dash_cooldown_counter == 0:
             self.dash_available = True
+
+        # Gestion de l'attaque
+        if self.attack_active:
+            self.attack_timer -= 1
+            if self.attack_timer <= 0:
+                self.attack_active = False
+        self.attack_cooldown_counter = max(0, self.attack_cooldown_counter - 1)
     
     def _update_horizontal_movement(self):
         # On ne déplace pas si en wall jump
@@ -392,6 +409,26 @@ class Player(BaseEntity):
         self.dash_available = False
         self.dash_cooldown_counter = PLAYER_DASH_COOLDOWN
     
+    def start_attack(self):
+        # Démarre une attaque si pas déjà en attaque ou en cooldown
+        if self.attack_active or self.attack_cooldown_counter > 0:
+            return
+        self.attack_active = True
+        self.attack_timer = PLAYER_ATTACK_DURATION
+        self.attack_cooldown_counter = PLAYER_ATTACK_COOLDOWN
+        self.attack_hit_enemies = []
+
+    def get_attack_rect(self):
+        # Retourne la hitbox de l'attaque, None si pas en train d'attaquer
+        if not self.attack_active:
+            return None
+        if self.direction == 1:
+            ax = self.x + self.width
+        else:
+            ax = self.x - PLAYER_ATTACK_RANGE_W
+        ay = self.y + (self.height - PLAYER_ATTACK_RANGE_H) // 2
+        return pygame.Rect(int(ax), int(ay), PLAYER_ATTACK_RANGE_W, PLAYER_ATTACK_RANGE_H)
+
     def take_damage(self, damage: int) -> bool:
         # Inflige des dégâts au joueur
         self.health = max(0, self.health - damage)
@@ -409,15 +446,23 @@ class Player(BaseEntity):
         
         draw_rect = self.rect.copy()
 
+        # Hitbox d'attaque (toujours visible quand active)
+        attack_rect = self.get_attack_rect()
+        if attack_rect:
+            draw_attack = attack_rect.copy()
+            draw_attack.x += offset[0]
+            draw_attack.y += offset[1]
+            pygame.draw.rect(surface, (255, 200, 0), draw_attack, 2)
+
         # Dessiner le rectangle du joueur
         if SHOW_COLLIDERS:
             draw_rect.x += offset[0]
             draw_rect.y += offset[1]
             pygame.draw.rect(surface, (0, 255, 0), draw_rect, 1)
-        
+
             # Afficher ligne verte si au sol (debug)
             if self.is_grounded:
-                pygame.draw.line(surface, (255, 0, 0), 
+                pygame.draw.line(surface, (255, 0, 0),
                             (draw_rect.left, draw_rect.bottom),
                             (draw_rect.right, draw_rect.bottom), 2)
     

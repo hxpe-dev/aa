@@ -34,10 +34,20 @@ PLAYER_MAX_HEALTH = 100
 WALL_JUMP_LOCK_DURATION = 10
 PLAYER_WALL_SLIDE_SPEED = 3
 
+# Attaque du joueur
+PLAYER_ATTACK_DAMAGE = 20
+PLAYER_ATTACK_DURATION = 15   # frames
+PLAYER_ATTACK_COOLDOWN = 40   # frames
+PLAYER_ATTACK_RANGE_W = 55    # largeur de la hitbox
+PLAYER_ATTACK_RANGE_H = 40    # hauteur de la hitbox
+
 # Paramètres des ennemis
 ENEMY_SPEED = 2
 ENEMY_PATROL_DISTANCE = 100
 ENEMY_AGGRO_RANGE = 200
+
+# Vie de Jean-Eude
+JEANEUDE_MAX_HEALTH = 50
 
 # Taille des tiles (pour tilemap grille)
 TILE_SIZE = 32
