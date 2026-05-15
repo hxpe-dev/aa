@@ -47,7 +47,8 @@ class SaveManager:
         game.tilemap.load_level(level_index)
         game.colliders = game.tilemap.get_colliders()
         game.current_level_index = level_index
-        
+        game.enemies = game._spawn_enemies_from_map()
+
         game.local_player.reset_position(p["x"], p["y"])
         game.local_player.level_index = p["level"]
         game.local_player.health = p["health"]

@@ -7,9 +7,92 @@ from typing import Dict, Optional
 from entities.enemy_jeaneude import JeanEude
 from core.save_manager import SaveManager
 
+class PauseMenu:
+    RESOLUTIONS = [
+        (960, 480),
+        (1280, 640),
+        (1600, 800),
+        (1920, 960),
+        None,  # None = plein ecran
+    ]
+
+    def __init__(self):
+        self.main_options = ["Reprendre", "Changer la resolution", "Quitter"]
+        self.selected = 0
+        self.show_resolutions = False
+        self.selected_res = 3 # 1920x960 par defaut parceque pourquoi pas
+        self.font_title = pygame.font.Font(None, 80)
+        self.font_option = pygame.font.Font(None, 50)
+        self.font_hint = pygame.font.Font(None, 30)
+
+    def reset(self):
+        self.selected = 0
+        self.show_resolutions = False
+
+    def handle_event(self, event):
+        # Retourne "resume", "quit", ("resolution", w, h), ou None
+        if event.type != pygame.KEYDOWN:
+            return None
+
+        if not self.show_resolutions:
+            if event.key == pygame.K_ESCAPE:
+                return "resume"
+            elif event.key in (pygame.K_UP,):
+                self.selected = (self.selected - 1) % len(self.main_options)
+            elif event.key in (pygame.K_DOWN,):
+                self.selected = (self.selected + 1) % len(self.main_options)
+            elif event.key == pygame.K_RETURN:
+                if self.selected == 0:
+                    return "resume"
+                elif self.selected == 1:
+                    self.show_resolutions = True
+                elif self.selected == 2:
+                    return "quit"
+        else:
+            if event.key == pygame.K_ESCAPE:
+                self.show_resolutions = False
+            elif event.key in (pygame.K_UP,):
+                self.selected_res = (self.selected_res - 1) % len(self.RESOLUTIONS)
+            elif event.key in (pygame.K_DOWN,):
+                self.selected_res = (self.selected_res + 1) % len(self.RESOLUTIONS)
+            elif event.key == pygame.K_RETURN:
+                self.show_resolutions = False
+                res = self.RESOLUTIONS[self.selected_res]
+                if res is None:
+                    return "fullscreen"
+                w, h = res
+                return ("resolution", w, h)
+
+        return None
+
+    def draw(self, screen):
+        overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))
+        screen.blit(overlay, (0, 0))
+
+        cx = screen.get_width() // 2
+        cy = screen.get_height() // 2
+
+        title = self.font_title.render("PAUSE", True, WHITE)
+        screen.blit(title, title.get_rect(center=(cx, cy - 150)))
+
+        if not self.show_resolutions:
+            for i, opt in enumerate(self.main_options):
+                color = YELLOW if i == self.selected else WHITE
+                text = self.font_option.render(opt, True, color)
+                screen.blit(text, text.get_rect(center=(cx, cy - 40 + i * 60)))
+        else:
+            title2 = self.font_option.render("Choisir une resolution :", True, WHITE)
+            screen.blit(title2, title2.get_rect(center=(cx, cy - 80)))
+            for i, res in enumerate(self.RESOLUTIONS):
+                color = YELLOW if i == self.selected_res else WHITE
+                label = f"{res[0]} x {res[1]}" if res is not None else "Plein ecran"
+                text = self.font_option.render(label, True, color)
+                screen.blit(text, text.get_rect(center=(cx, cy - 20 + i * 55)))
+
+
 class MultiplayerGame:    
-    def __init__(self, screen, network_mode: NetworkMode = NetworkMode.OFFLINE, 
-                 server_ip: Optional[str] = None):
+    def __init__(self, screen, network_mode: NetworkMode = NetworkMode.OFFLINE, server_ip: Optional[str] = None):
         # Initialisation du jeu multijouieur
         self.screen = screen
         self.clock = pygame.time.Clock()
@@ -43,6 +126,15 @@ class MultiplayerGame:
         # Game over
         self.game_over = False
         self.all_players_dead = False
+
+        # Menu pause
+        self.paused = False
+        self.pause_menu = PauseMenu()
+        self.is_fullscreen = False
+        self.windowed_size = (WINDOW_WIDTH, WINDOW_HEIGHT)
+
+        # Surface de rendu a taille fixe (1920x960), le jeu est toujours rendu a cette resolution, puis scale vers la fenetre reelle (choisie par le joueur dans les params)
+        self.game_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
         #sauvegarde
         self.save_manager = SaveManager()
@@ -202,21 +294,54 @@ class MultiplayerGame:
         # Events pygame
         if event.type == pygame.QUIT:
             self.running = False
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
+            return
+
+        if event.type != pygame.KEYDOWN:
+            return
+
+        # ESC ouvre le menu pause (si le jeu tourne normalement)
+        if event.key == pygame.K_ESCAPE and not self.paused:
+            self.paused = True
+            self.pause_menu.reset()
+            return
+
+        # Quand le menu pause est ouvert on lui envoie les events
+        if self.paused:
+            result = self.pause_menu.handle_event(event)
+            if result == "resume":
+                self.paused = False
+            elif result == "quit":
                 self.running = False
-            elif event.key == pygame.K_r:
-                if self.game_over:
-                    self._restart_game()
-                elif self.local_player:
-                    self.local_player.reset_position(self.spawn_x, self.spawn_y)
-            elif event.key == pygame.K_F5:
-                self.save_manager.save(self)   #sauvegarde manuelle
-            elif event.key == pygame.K_F9:
-                self.save_manager.load(self)   #chargement manuel
+            elif result is not None and result[0] == "resolution":
+                _, w, h = result
+                self.windowed_size = (w, h)
+                self.is_fullscreen = False
+                self.screen = pygame.display.set_mode((w, h))
+            elif result == "fullscreen":
+                if self.is_fullscreen:
+                    self.screen = pygame.display.set_mode(self.windowed_size)
+                    self.is_fullscreen = False
+                else:
+                    self.windowed_size = (self.screen.get_width(), self.screen.get_height())
+                    self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                    self.is_fullscreen = True
+            return
+
+        # Events normaux du jeu (seulement quand non pause)
+        if event.key == pygame.K_r:
+            if self.game_over:
+                self._restart_game()
+            elif self.local_player:
+                self.local_player.reset_position(self.spawn_x, self.spawn_y)
+        elif event.key == pygame.K_F5:
+            self.save_manager.save(self)   #sauvegarde manuelle
+        elif event.key == pygame.K_F9:
+            self.save_manager.load(self)   #chargement manuel
     
     def handle_input(self):
-        # Inputs clavier
+        # Inputs clavier (bloque les inputs joueur quand le menu pause est ouvert)
+        if self.paused:
+            return
         if self.local_player:
             keys = pygame.key.get_pressed()
             self.local_player.handle_input(keys)
@@ -405,37 +530,43 @@ class MultiplayerGame:
     
     def _draw_game_over(self):
         # Ecran de fin quand le joueur est mort
-        self.screen.fill(BLACK)
+        cx = self.game_surface.get_width() // 2
+        cy = self.game_surface.get_height() // 2
+        self.game_surface.fill(BLACK)
         font_big = pygame.font.Font(None, 120)
         font_small = pygame.font.Font(None, 40)
         text = font_big.render("GAME OVER", True, RED)
-        text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 60))
-        self.screen.blit(text, text_rect)
-        sub = font_small.render("R pour réapparaitre | ESC pour quitter", True, WHITE)
-        sub_rect = sub.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 40))
-        self.screen.blit(sub, sub_rect)
+        self.game_surface.blit(text, text.get_rect(center=(cx, cy - 60)))
+        sub = font_small.render("R pour reapparaitre", True, WHITE)
+        self.game_surface.blit(sub, sub.get_rect(center=(cx, cy + 40)))
 
     def _draw_all_dead(self):
         # Ecran special quand tous les joueurs sont morts en multi
-        self.screen.fill((20, 0, 0))
+        cx = self.game_surface.get_width() // 2
+        cy = self.game_surface.get_height() // 2
+        self.game_surface.fill((20, 0, 0))
         font_big = pygame.font.Font(None, 100)
         font_small = pygame.font.Font(None, 40)
         text = font_big.render("DEFAITE TOTALE", True, (200, 50, 50))
-        text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 80))
-        self.screen.blit(text, text_rect)
-        sub1 = font_small.render("Tous les joueurs sont morts.", True, WHITE)
-        sub1_rect = sub1.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 10))
-        self.screen.blit(sub1, sub1_rect)
-        sub2 = font_small.render("R pour recommencer | ESC pour quitter", True, GRAY)
-        sub2_rect = sub2.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 55))
-        self.screen.blit(sub2, sub2_rect)
+        self.game_surface.blit(text, text.get_rect(center=(cx, cy - 80)))
+        sub1 = font_small.render("Tous les joueurs sont morts (vous êtes peut-être pas fait pour ça).", True, WHITE)
+        self.game_surface.blit(sub1, sub1.get_rect(center=(cx, cy + 10)))
+        sub2 = font_small.render("R pour recommencer", True, GRAY)
+        self.game_surface.blit(sub2, sub2.get_rect(center=(cx, cy + 55)))
 
     def _restart_game(self):
         # Remet le jeu a zero apres game over
         self.game_over = False
         all_dead = self.all_players_dead
         self.all_players_dead = False
+
+        # Recharge la zone de depart pour eviter de spawner dans un mur ;-;
+        self.tilemap.load_level(0)
+        self.colliders = self.tilemap.get_colliders()
+        self.current_level_index = 0
+
         if self.local_player:
+            self.local_player.level_index = 0
             self.local_player.reset_position(self.spawn_x, self.spawn_y)
             self.local_player.health = PLAYER_MAX_HEALTH
         # Respawn les ennemis en offline ou si tout le monde est mort en multi
@@ -443,42 +574,87 @@ class MultiplayerGame:
             self.enemies = self._spawn_enemies_from_map()
 
     def draw(self):
-        # Rendu graphique du jeu
-
+        # Rendu graphique du jeu vers game_surface (resolution fixe 1920x960)
         if self.all_players_dead:
             self._draw_all_dead()
-            pygame.display.flip()
-            return
-
-        if self.game_over:
+        elif self.game_over:
             self._draw_game_over()
-            pygame.display.flip()
-            return
+        else:
+            # Background
+            self.game_surface.fill(BLACK)
 
-        # Background
+            # Dessine la carte
+            self.tilemap.draw(self.game_surface, offset=(0, 0))
+
+            # Dessine notre joueur local
+            if self.local_player:
+                self.local_player.draw(self.game_surface, offset=(0, 0))
+
+            # Dessine les joueurs distants (seulement si ils sont vivants)
+            for player_id, player in self.remote_players.items():
+                if player.level_index == self.current_level_index and player.health > 0:
+                    player.draw(self.game_surface, offset=(0, 0))
+
+            # Dessine les ennemis Jean-Eude
+            for enemy in self.enemies:
+                enemy.draw(self.game_surface, offset=(0, 0))
+
+            # Dessine les infos de debug
+            self._draw_debug_info()
+
+            # Dessine le HUD (seulement barre de vie pour le moment )
+            self._draw_hud()
+
+        # Scale game_surface en conservant le ratio (letterbox si necessaire, cad avec les bandes noires sinon le jeu est déformé)
+        game_w = self.game_surface.get_width()
+        game_h = self.game_surface.get_height()
+        screen_w = self.screen.get_width()
+        screen_h = self.screen.get_height()
+        scale = min(screen_w / game_w, screen_h / game_h)
+        scaled_w = int(game_w * scale)
+        scaled_h = int(game_h * scale)
+        offset_x = (screen_w - scaled_w) // 2
+        offset_y = (screen_h - scaled_h) // 2
+        scaled = pygame.transform.scale(self.game_surface, (scaled_w, scaled_h))
         self.screen.fill(BLACK)
-        
-        # Dessine la carte
-        self.tilemap.draw(self.screen, offset=(0, 0))
-        
-        # Dessine notre joueur local
-        if self.local_player:
-            self.local_player.draw(self.screen, offset=(0, 0))
-        
-        # Dessine les joueurs distants (seulement s'ils sont vivants)
-        for player_id, player in self.remote_players.items():
-            if player.level_index == self.current_level_index and player.health > 0:
-                player.draw(self.screen, offset=(0, 0))
+        self.screen.blit(scaled, (offset_x, offset_y))
 
-        # Dessine les ennemis Jean-Eude
-        for enemy in self.enemies:
-            enemy.draw(self.screen, offset=(0, 0))
-        
-        # Dessine les infos de debug
-        self._draw_debug_info()
-        
+        # Dessine le menu pause par dessus (en coordonnees ecran, pas game_surface)
+        if self.paused:
+            self.pause_menu.draw(self.screen)
+
         pygame.display.flip()
     
+    def _draw_hud(self):
+        if not self.local_player:
+            return
+
+        bar_x = 20
+        bar_y = self.game_surface.get_height() - 45
+        bar_w = 200
+        bar_h = 20
+
+        ratio = max(0, self.local_player.health / PLAYER_MAX_HEALTH)
+
+        # Couleur selon le niveau de vie en rgb
+        if ratio > 0.6:
+            bar_color = (60, 200, 60)
+        elif ratio > 0.3:
+            bar_color = (220, 180, 0)
+        else:
+            bar_color = (200, 40, 40)
+
+        # Fond de la barre
+        pygame.draw.rect(self.game_surface, DARK_GRAY, (bar_x, bar_y, bar_w, bar_h))
+        # Remplissage
+        pygame.draw.rect(self.game_surface, bar_color, (bar_x, bar_y, int(bar_w * ratio), bar_h))
+        # Bordure
+        pygame.draw.rect(self.game_surface, WHITE, (bar_x, bar_y, bar_w, bar_h), 2)
+
+        font = pygame.font.Font(None, 22)
+        label = font.render(f"PV {self.local_player.health} / {PLAYER_MAX_HEALTH}", True, WHITE)
+        self.game_surface.blit(label, (bar_x, bar_y - 18))
+
     def _draw_debug_info(self):
         # Affiche les infos de debug sur l'écran
         
@@ -503,7 +679,7 @@ class MultiplayerGame:
         
         for i, text in enumerate(debug_texts):
             surf = self.font.render(text, True, WHITE)
-            self.screen.blit(surf, (10, 10 + i * 20))
+            self.game_surface.blit(surf, (10, 10 + i * 20))
     
     def run(self):
         # Boucle principale du jeu
