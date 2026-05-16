@@ -39,7 +39,7 @@ PLAYER_ATTACK_DAMAGE = 20
 PLAYER_ATTACK_DURATION = 15   # frames
 PLAYER_ATTACK_COOLDOWN = 40   # frames
 PLAYER_ATTACK_RANGE_W = 55    # largeur de la hitbox
-PLAYER_ATTACK_RANGE_H = 40    # hauteur de la hitbox
+PLAYER_ATTACK_RANGE_H = 60    # hauteur de la hitbox
 
 # Paramètres des ennemis
 ENEMY_SPEED = 2

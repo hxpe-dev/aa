@@ -73,7 +73,7 @@ class PauseMenu:
         cx = screen.get_width() // 2
         cy = screen.get_height() // 2
 
-        title = self.font_title.render("PAUSE", True, WHITE)
+        title = self.font_title.render("MENU", True, WHITE)
         screen.blit(title, title.get_rect(center=(cx, cy - 150)))
 
         if not self.show_resolutions:
@@ -127,7 +127,7 @@ class MultiplayerGame:
         self.game_over = False
         self.all_players_dead = False
 
-        # Menu pause
+        # Menu pause (au final ça s'appelle pause mais ca fait pas de pause mais tkt)
         self.paused = False
         self.pause_menu = PauseMenu()
         self.is_fullscreen = False

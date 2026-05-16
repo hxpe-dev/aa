@@ -59,6 +59,7 @@ class JeanEude(BaseEntity):
         # Vie
         self.health = JEANEUDE_MAX_HEALTH
         self.is_dead = False
+        self.hit_flash_counter = 0
 
         # Référence au joueur cible
         self.target_player = None
@@ -72,6 +73,7 @@ class JeanEude(BaseEntity):
     def take_damage(self, damage: int):
         # Inflige des dégâts à Jean-Eude
         self.health = max(0, self.health - damage)
+        self.hit_flash_counter = 15 # nb de frames ou on affiche jeaneude en rouge
         if self.health <= 0:
             self.is_dead = True
 
@@ -107,6 +109,9 @@ class JeanEude(BaseEntity):
     # Mise à jour principale
 
     def update(self, dt: float, colliders: Optional[List[pygame.Rect]] = None, players: Optional[list] = None):
+        if self.hit_flash_counter > 0:
+            self.hit_flash_counter -= 1
+
         if self.is_dead:
             return
 
@@ -349,7 +354,12 @@ class JeanEude(BaseEntity):
 
         render_x = self.x + offset[0] - (self.sprite_size - JEANEUDE_WIDTH) // 2
         render_y = self.y + offset[1] - (self.sprite_size - JEANEUDE_HEIGHT)
-        surface.blit(self.image, (render_x, render_y))
+        if self.hit_flash_counter > 0:
+            img = self.image.copy()
+            img.fill((200, 0, 0, 0), special_flags=pygame.BLEND_RGBA_ADD) # pour ajouter dans le rouge et pas modifier les autres couleurs
+        else:
+            img = self.image
+        surface.blit(img, (render_x, render_y))
 
         if SHOW_COLLIDERS:
             draw_rect = self.rect.copy()

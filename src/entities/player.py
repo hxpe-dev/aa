@@ -14,6 +14,7 @@ class Player(BaseEntity):
         
         # État du joueur
         self.health = PLAYER_MAX_HEALTH
+        self.hit_flash_counter = 0
         self.direction = 1  # 1 = droite, -1 = gauche
         self.level_index = 0
         
@@ -118,6 +119,9 @@ class Player(BaseEntity):
 
         if colliders is None:
             colliders = []
+
+        if self.hit_flash_counter > 0:
+            self.hit_flash_counter -= 1
         
         # Mise à jour des compteurs de temps
         self._update_timers()
@@ -432,6 +436,7 @@ class Player(BaseEntity):
     def take_damage(self, damage: int) -> bool:
         # Inflige des dégâts au joueur
         self.health = max(0, self.health - damage)
+        self.hit_flash_counter = 15 #nb de frames ou on affiche le joueur en rouge
         return self.health <= 0
     
     def heal(self, amount: int):
@@ -441,8 +446,12 @@ class Player(BaseEntity):
     def draw(self, surface: pygame.Surface, offset=(0, 0)):
         render_x = self.x + offset[0] - (self.sprite_size - PLAYER_WIDTH)//2
         render_y = self.y + offset[1] - (self.sprite_size - PLAYER_HEIGHT)
-        surface.blit(self.image, (render_x, render_y))
-        
+        if self.hit_flash_counter > 0:
+            img = self.image.copy()
+            img.fill((200, 0, 0, 0), special_flags=pygame.BLEND_RGBA_ADD) # pr juste ajouter dans le rouge et pas modifier les autres couleurs
+        else:
+            img = self.image
+        surface.blit(img, (render_x, render_y))
         
         draw_rect = self.rect.copy()
 
