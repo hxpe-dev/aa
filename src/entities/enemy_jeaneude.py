@@ -109,9 +109,6 @@ class JeanEude(BaseEntity):
     # Mise à jour principale
 
     def update(self, dt: float, colliders: Optional[List[pygame.Rect]] = None, players: Optional[list] = None):
-        if self.hit_flash_counter > 0:
-            self.hit_flash_counter -= 1
-
         if self.is_dead:
             return
 
@@ -354,7 +351,9 @@ class JeanEude(BaseEntity):
 
         render_x = self.x + offset[0] - (self.sprite_size - JEANEUDE_WIDTH) // 2
         render_y = self.y + offset[1] - (self.sprite_size - JEANEUDE_HEIGHT)
+
         if self.hit_flash_counter > 0:
+            self.hit_flash_counter -= 1
             img = self.image.copy()
             img.fill((200, 0, 0, 0), special_flags=pygame.BLEND_RGBA_ADD) # pour ajouter dans le rouge et pas modifier les autres couleurs
         else:

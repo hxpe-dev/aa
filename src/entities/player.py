@@ -119,9 +119,6 @@ class Player(BaseEntity):
 
         if colliders is None:
             colliders = []
-
-        if self.hit_flash_counter > 0:
-            self.hit_flash_counter -= 1
         
         # Mise à jour des compteurs de temps
         self._update_timers()
@@ -446,7 +443,9 @@ class Player(BaseEntity):
     def draw(self, surface: pygame.Surface, offset=(0, 0)):
         render_x = self.x + offset[0] - (self.sprite_size - PLAYER_WIDTH)//2
         render_y = self.y + offset[1] - (self.sprite_size - PLAYER_HEIGHT)
+        
         if self.hit_flash_counter > 0:
+            self.hit_flash_counter -= 1
             img = self.image.copy()
             img.fill((200, 0, 0, 0), special_flags=pygame.BLEND_RGBA_ADD) # pr juste ajouter dans le rouge et pas modifier les autres couleurs
         else:
