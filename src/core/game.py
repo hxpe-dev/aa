@@ -600,7 +600,8 @@ class MultiplayerGame:
                 enemy.draw(self.game_surface, offset=(0, 0))
 
             # Dessine les infos de debug
-            self._draw_debug_info()
+            if SHOW_DEBUG_INFO:
+                self._draw_debug_info()
 
             # Dessine le HUD (seulement barre de vie pour le moment )
             self._draw_hud()

@@ -454,16 +454,16 @@ class Player(BaseEntity):
         
         draw_rect = self.rect.copy()
 
-        # Hitbox d'attaque (toujours visible quand active)
-        attack_rect = self.get_attack_rect()
-        if attack_rect:
-            draw_attack = attack_rect.copy()
-            draw_attack.x += offset[0]
-            draw_attack.y += offset[1]
-            pygame.draw.rect(surface, (255, 200, 0), draw_attack, 2)
-
         # Dessiner le rectangle du joueur
         if SHOW_COLLIDERS:
+            # Hitbox d'attaque (toujours visible quand active)
+            attack_rect = self.get_attack_rect()
+            if attack_rect:
+                draw_attack = attack_rect.copy()
+                draw_attack.x += offset[0]
+                draw_attack.y += offset[1]
+                pygame.draw.rect(surface, (255, 200, 0), draw_attack, 2)
+
             draw_rect.x += offset[0]
             draw_rect.y += offset[1]
             pygame.draw.rect(surface, (0, 255, 0), draw_rect, 1)
