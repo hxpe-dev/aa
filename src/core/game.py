@@ -17,7 +17,7 @@ class PauseMenu:
     ]
 
     def __init__(self):
-        self.main_options = ["Reprendre", "Changer la resolution", "Quitter"]
+        self.main_options = ["Reprendre", "Changer la resolution", "Debug info", "Colliders", "Quitter"]
         self.selected = 0
         self.show_resolutions = False
         self.selected_res = 3 # 1920x960 par defaut parceque pourquoi pas
@@ -47,6 +47,10 @@ class PauseMenu:
                 elif self.selected == 1:
                     self.show_resolutions = True
                 elif self.selected == 2:
+                    return "toggle_debug"
+                elif self.selected == 3:
+                    return "toggle_colliders"
+                elif self.selected == 4:
                     return "quit"
         else:
             if event.key == pygame.K_ESCAPE:
@@ -65,7 +69,7 @@ class PauseMenu:
 
         return None
 
-    def draw(self, screen):
+    def draw(self, screen, show_debug, show_colliders):
         overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 150))
         screen.blit(overlay, (0, 0))
@@ -78,14 +82,30 @@ class PauseMenu:
 
         if not self.show_resolutions:
             for i, opt in enumerate(self.main_options):
-                color = YELLOW if i == self.selected else WHITE
-                text = self.font_option.render(opt, True, color)
+                color = YELLOW
+                if i != self.selected:
+                    color = WHITE
+                if i == 2:
+                    if show_debug:
+                        label = "Debug info : ON"
+                    else:
+                        label = "Debug info : OFF"
+                elif i == 3:
+                    if show_colliders:
+                        label = "Colliders : ON"
+                    else:
+                        label = "Colliders : OFF"
+                else:
+                    label = opt
+                text = self.font_option.render(label, True, color)
                 screen.blit(text, text.get_rect(center=(cx, cy - 40 + i * 60)))
         else:
             title2 = self.font_option.render("Choisir une resolution :", True, WHITE)
             screen.blit(title2, title2.get_rect(center=(cx, cy - 80)))
             for i, res in enumerate(self.RESOLUTIONS):
-                color = YELLOW if i == self.selected_res else WHITE
+                color = YELLOW
+                if i != self.selected_res:
+                    color = WHITE
                 label = f"{res[0]} x {res[1]}" if res is not None else "Plein ecran"
                 text = self.font_option.render(label, True, color)
                 screen.blit(text, text.get_rect(center=(cx, cy - 20 + i * 55)))
@@ -130,6 +150,8 @@ class MultiplayerGame:
         # Menu pause (au final ça s'appelle pause mais ca fait pas de pause mais tkt)
         self.paused = False
         self.pause_menu = PauseMenu()
+        self.show_debug_info = SHOW_DEBUG_INFO
+        self.show_colliders = SHOW_COLLIDERS
         self.is_fullscreen = False
         self.windowed_size = (WINDOW_WIDTH, WINDOW_HEIGHT)
 
@@ -325,6 +347,10 @@ class MultiplayerGame:
                     self.windowed_size = (self.screen.get_width(), self.screen.get_height())
                     self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                     self.is_fullscreen = True
+            elif result == "toggle_debug":
+                self.show_debug_info = not self.show_debug_info
+            elif result == "toggle_colliders":
+                self.show_colliders = not self.show_colliders
             return
 
         # Events normaux du jeu (seulement quand non pause)
@@ -588,19 +614,19 @@ class MultiplayerGame:
 
             # Dessine notre joueur local
             if self.local_player:
-                self.local_player.draw(self.game_surface, offset=(0, 0))
+                self.local_player.draw(self.game_surface, offset=(0, 0), show_colliders=self.show_colliders)
 
             # Dessine les joueurs distants (seulement si ils sont vivants)
             for player_id, player in self.remote_players.items():
                 if player.level_index == self.current_level_index and player.health > 0:
-                    player.draw(self.game_surface, offset=(0, 0))
+                    player.draw(self.game_surface, offset=(0, 0), show_colliders=self.show_colliders)
 
             # Dessine les ennemis Jean-Eude
             for enemy in self.enemies:
-                enemy.draw(self.game_surface, offset=(0, 0))
+                enemy.draw(self.game_surface, offset=(0, 0), show_colliders=self.show_colliders)
 
             # Dessine les infos de debug
-            if SHOW_DEBUG_INFO:
+            if self.show_debug_info:
                 self._draw_debug_info()
 
             # Dessine le HUD (seulement barre de vie pour le moment )
@@ -622,7 +648,7 @@ class MultiplayerGame:
 
         # Dessine le menu pause par dessus (en coordonnees ecran, pas game_surface)
         if self.paused:
-            self.pause_menu.draw(self.screen)
+            self.pause_menu.draw(self.screen, self.show_debug_info, self.show_colliders)
 
         pygame.display.flip()
     

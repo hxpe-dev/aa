@@ -345,7 +345,7 @@ class JeanEude(BaseEntity):
             self.sprite = self.walking_sprites[self.current_sprite_index]
             self.sprite_counter = 0
 
-    def draw(self, surface: pygame.Surface, offset=(0, 0)):
+    def draw(self, surface: pygame.Surface, offset=(0, 0), show_colliders=True):
         if self.is_dead:
             return
 
@@ -360,7 +360,7 @@ class JeanEude(BaseEntity):
             img = self.image
         surface.blit(img, (render_x, render_y))
 
-        if SHOW_COLLIDERS:
+        if show_colliders:
             draw_rect = self.rect.copy()
             draw_rect.x += offset[0]
             draw_rect.y += offset[1]

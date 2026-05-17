@@ -53,8 +53,8 @@ JEANEUDE_MAX_HEALTH = 50
 TILE_SIZE = 32
 
 # Debug
-SHOW_COLLIDERS = True
-SHOW_DEBUG_INFO = True
+SHOW_COLLIDERS = False
+SHOW_DEBUG_INFO = False
 
 # Paramètres de l'IA de Jean-Eude
 JEANEUDE_WIDTH  = 48

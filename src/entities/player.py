@@ -440,7 +440,7 @@ class Player(BaseEntity):
         # Soigne le joueur HAHA
         self.health = min(PLAYER_MAX_HEALTH, self.health + amount)
     
-    def draw(self, surface: pygame.Surface, offset=(0, 0)):
+    def draw(self, surface: pygame.Surface, offset=(0, 0), show_colliders=True):
         render_x = self.x + offset[0] - (self.sprite_size - PLAYER_WIDTH)//2
         render_y = self.y + offset[1] - (self.sprite_size - PLAYER_HEIGHT)
         
@@ -455,7 +455,7 @@ class Player(BaseEntity):
         draw_rect = self.rect.copy()
 
         # Dessiner le rectangle du joueur
-        if SHOW_COLLIDERS:
+        if show_colliders:
             # Hitbox d'attaque (toujours visible quand active)
             attack_rect = self.get_attack_rect()
             if attack_rect:
