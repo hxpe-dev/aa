@@ -146,6 +146,7 @@ class MultiplayerGame:
         # Game over
         self.game_over = False
         self.all_players_dead = False
+        self.respawn_cooldown = 0
 
         # Menu pause (au final ça s'appelle pause mais ca fait pas de pause mais tkt)
         self.paused = False
@@ -355,7 +356,7 @@ class MultiplayerGame:
 
         # Events normaux du jeu (seulement quand non pause)
         if event.key == pygame.K_r:
-            if self.game_over:
+            if self.game_over and (self.respawn_cooldown <= 0 or self.all_players_dead):
                 self._restart_game()
             elif self.local_player:
                 self.local_player.reset_position(self.spawn_x, self.spawn_y)
@@ -378,6 +379,11 @@ class MultiplayerGame:
         # Vérifie si le joueur est mort
         if self.local_player and self.local_player.health <= 0 and not self.game_over:
             self.game_over = True
+            if self.network_mode != NetworkMode.OFFLINE:
+                self.respawn_cooldown = RESPAWN_COOLDOWN
+
+        if self.game_over and self.respawn_cooldown > 0:
+            self.respawn_cooldown -= 1
 
         # Vérifie si tous les joueurs sont morts (multi seulement)
         if self.game_over and self.remote_players and not self.all_players_dead:
@@ -563,7 +569,11 @@ class MultiplayerGame:
         font_small = pygame.font.Font(None, 40)
         text = font_big.render("GAME OVER", True, RED)
         self.game_surface.blit(text, text.get_rect(center=(cx, cy - 60)))
-        sub = font_small.render("R pour reapparaitre", True, WHITE)
+        if self.respawn_cooldown > 0:
+            secondes = (self.respawn_cooldown + 59) // 60
+            sub = font_small.render(f"Reapparition dans {secondes} secondes...", True, GRAY)
+        else:
+            sub = font_small.render("R pour reapparaitre", True, WHITE)
         self.game_surface.blit(sub, sub.get_rect(center=(cx, cy + 40)))
 
     def _draw_all_dead(self):
@@ -585,6 +595,7 @@ class MultiplayerGame:
         self.game_over = False
         all_dead = self.all_players_dead
         self.all_players_dead = False
+        self.respawn_cooldown = 0
 
         # Recharge la zone de depart pour eviter de spawner dans un mur ;-;
         self.tilemap.load_level(0)

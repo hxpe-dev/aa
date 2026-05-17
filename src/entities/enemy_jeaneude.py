@@ -139,6 +139,8 @@ class JeanEude(BaseEntity):
         for player in players:
             if player is None:
                 continue
+            if player.health <= 0:
+                continue
             dx = player.x - self.x
             dist = abs(dx)
             if dist < closest_dist:
