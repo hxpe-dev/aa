@@ -562,6 +562,9 @@ class MultiplayerGame:
             self.current_level_index = level_index
             self.local_player.level_index = level_index
 
+            self.local_player.velocity_x = 0
+            self.local_player.velocity_y = 0
+
             # Positionne le joueur a la porte d'arrivee
             dest_pos = self.tilemap.find_door_position(dest_iid)
             if dest_pos:
@@ -572,20 +575,18 @@ class MultiplayerGame:
 
                 if source_rect.width > source_rect.height:
                     # porte large (porte verticale)
-                    x_offset = self.local_player.x - source_rect.centerx
-                    spawn_x = door_x + x_offset
 
                     # Decale verticalement si la porte est sur un bord haut/bas
                     if door_y < 50:
                         spawn_y = door_y + 80
-                        self.local_player.reset_position(spawn_x, spawn_y)
+                        self.local_player.reset_position(door_x, spawn_y)
                     elif door_y > level_height - 50:
                         spawn_y = door_y - 80
-                        self.local_player.reset_position(spawn_x, spawn_y)
+                        self.local_player.reset_position(door_x, spawn_y)
                         self.local_player.velocity_y = PLAYER_JUMP_FORCE
                     else:
                         spawn_y = door_y + 80
-                        self.local_player.reset_position(spawn_x, spawn_y)
+                        self.local_player.reset_position(door_x, spawn_y)
                 else:
                     # porte haute (porte horizontale)
                     y_offset = self.local_player.y - source_rect.y

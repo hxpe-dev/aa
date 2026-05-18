@@ -25,6 +25,10 @@ class LDtkLoader:
             full_path = os.path.join(ldtk_dir, rel_path)
             try:
                 img = pygame.image.load(full_path).convert_alpha()
+                expected_w = tileset.get("pxWid")
+                expected_h = tileset.get("pxHei")
+                if expected_w and expected_h and img.get_size() != (expected_w, expected_h):
+                    img = pygame.transform.scale(img, (expected_w, expected_h))
                 self.tilesets[uid] = img  # On stock l'image avec son uid comme clé
             except Exception as e:
                 print(f"Erreur chargement tileset '{full_path}': {e}")
