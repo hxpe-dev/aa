@@ -566,15 +566,40 @@ class MultiplayerGame:
             dest_pos = self.tilemap.find_door_position(dest_iid)
             if dest_pos:
                 door_x, door_y = dest_pos
-                # Décale le joueur a cote de la porte
                 level_width = self.tilemap.width
-                if door_x < 50:  # Porte a gauche du niveau = on spawn a droite de la porte
-                    spawn_x = door_x + 80
-                elif door_x > level_width - 50:  # Porte a droite = on spawn a gauche
-                    spawn_x = door_x - 80
+                level_height = self.tilemap.height
+                source_rect = door["rect"]
+
+                if source_rect.width > source_rect.height:
+                    # porte large (porte verticale)
+                    x_offset = self.local_player.x - source_rect.centerx
+                    spawn_x = door_x + x_offset
+
+                    # Decale verticalement si la porte est sur un bord haut/bas
+                    if door_y < 50:
+                        spawn_y = door_y + 80
+                        self.local_player.reset_position(spawn_x, spawn_y)
+                    elif door_y > level_height - 50:
+                        spawn_y = door_y - 80
+                        self.local_player.reset_position(spawn_x, spawn_y)
+                        self.local_player.velocity_y = PLAYER_JUMP_FORCE
+                    else:
+                        spawn_y = door_y + 80
+                        self.local_player.reset_position(spawn_x, spawn_y)
                 else:
-                    spawn_x = door_x
-                self.local_player.reset_position(spawn_x, door_y)
+                    # porte haute (porte horizontale)
+                    y_offset = self.local_player.y - source_rect.y
+                    spawn_y = door_y + y_offset
+
+                    # Decale horizontalement si la porte est sur un bord gauche/droit
+                    if door_x < 50:
+                        spawn_x = door_x + 80
+                    elif door_x > level_width - 50:
+                        spawn_x = door_x - 80
+                    else:
+                        spawn_x = door_x
+
+                    self.local_player.reset_position(spawn_x, spawn_y)
             else:
                 spawn = self.tilemap.get_spawn_point()
                 self.local_player.reset_position(spawn[0], spawn[1])
@@ -655,6 +680,10 @@ class MultiplayerGame:
 
             # Dessine la carte
             self.tilemap.draw(self.game_surface, offset=(0, 0))
+
+            if self.show_colliders:
+                for door in self.tilemap.get_doors():
+                    pygame.draw.rect(self.game_surface, (0, 200, 255), door["rect"], 2)
 
             # Dessine notre joueur local
             if self.local_player:

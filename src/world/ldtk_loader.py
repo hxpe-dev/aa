@@ -192,7 +192,7 @@ class LDtkLevel:
                 self.doors.append({
                     "iid": entity["iid"],
                     "rect": pygame.Rect(
-                        int(px[0] * self.scale),
+                        int((px[0] - entity["width"] / 2) * self.scale),
                         int(px[1] * self.scale),
                         int(entity["width"] * self.scale),
                         int(entity["height"] * self.scale),
@@ -200,7 +200,7 @@ class LDtkLevel:
                     "dest_entity_iid": dest_iid,
                     "dest_level_iid": dest_level_iid,
                 })
-            elif identifier == "Ennemi":
+            elif identifier == "JEAN_EUD":
                 self.enemy_spawns.append({
                     "x": float(px[0]) * self.scale,
                     "y": float(px[1]) * self.scale,
