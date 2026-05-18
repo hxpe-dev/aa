@@ -55,6 +55,7 @@ TILE_SIZE = 32
 # Debug
 SHOW_COLLIDERS = False
 SHOW_DEBUG_INFO = False
+SHOW_NAMETAGS = True
 
 # Paramètres de l'IA de Jean-Eude
 JEANEUDE_WIDTH  = 48

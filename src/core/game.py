@@ -17,7 +17,7 @@ class PauseMenu:
     ]
 
     def __init__(self):
-        self.main_options = ["Reprendre", "Changer la resolution", "Debug info", "Colliders", "Quitter"]
+        self.main_options = ["Reprendre", "Changer la resolution", "Debug info", "Colliders", "Nametags", "Quitter"]
         self.selected = 0
         self.show_resolutions = False
         self.selected_res = 3 # 1920x960 par defaut parceque pourquoi pas
@@ -51,6 +51,8 @@ class PauseMenu:
                 elif self.selected == 3:
                     return "toggle_colliders"
                 elif self.selected == 4:
+                    return "toggle_nametags"
+                elif self.selected == 5:
                     return "quit"
         else:
             if event.key == pygame.K_ESCAPE:
@@ -69,7 +71,7 @@ class PauseMenu:
 
         return None
 
-    def draw(self, screen, show_debug, show_colliders):
+    def draw(self, screen, show_debug, show_colliders, show_nametags):
         overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 150))
         screen.blit(overlay, (0, 0))
@@ -95,6 +97,11 @@ class PauseMenu:
                         label = "Colliders : ON"
                     else:
                         label = "Colliders : OFF"
+                elif i == 4:
+                    if show_nametags:
+                        label = "Nametags : ON"
+                    else:
+                        label = "Nametags : OFF"
                 else:
                     label = opt
                 text = self.font_option.render(label, True, color)
@@ -117,6 +124,7 @@ class MultiplayerGame:
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 16)
+        self.font_player_name = pygame.font.Font(None, 22)
         self.running = True
         self.network_mode = network_mode
         
@@ -153,6 +161,7 @@ class MultiplayerGame:
         self.pause_menu = PauseMenu()
         self.show_debug_info = SHOW_DEBUG_INFO
         self.show_colliders = SHOW_COLLIDERS
+        self.show_nametags = SHOW_NAMETAGS
         self.is_fullscreen = False
         self.windowed_size = (WINDOW_WIDTH, WINDOW_HEIGHT)
 
@@ -352,6 +361,8 @@ class MultiplayerGame:
                 self.show_debug_info = not self.show_debug_info
             elif result == "toggle_colliders":
                 self.show_colliders = not self.show_colliders
+            elif result == "toggle_nametags":
+                self.show_nametags = not self.show_nametags
             return
 
         # Events normaux du jeu (seulement quand non pause)
@@ -559,6 +570,13 @@ class MultiplayerGame:
     def check_global_collisions(self):
         # Check les collisions globales (pas encore implementé TODO)
         pass
+
+    def _draw_player_name(self, player, player_id):
+        name = f"Player {player_id + 1}"
+        label = self.font_player_name.render(name, True, WHITE)
+        x = int(player.x + PLAYER_WIDTH // 2)
+        y = int(player.y + PLAYER_HEIGHT + 6)
+        self.game_surface.blit(label, label.get_rect(center=(x, y)))
     
     def _draw_game_over(self):
         # Ecran de fin quand le joueur est mort
@@ -626,11 +644,18 @@ class MultiplayerGame:
             # Dessine notre joueur local
             if self.local_player:
                 self.local_player.draw(self.game_surface, offset=(0, 0), show_colliders=self.show_colliders)
+                # Dessine le pseudo en dessous du joueur si en multi
+                if self.network_mode != NetworkMode.OFFLINE:
+                    if self.local_player_id is not None and self.local_player_id >= 0:
+                        if self.show_nametags:
+                            self._draw_player_name(self.local_player, self.local_player_id or 0)
 
             # Dessine les joueurs distants (seulement si ils sont vivants)
             for player_id, player in self.remote_players.items():
                 if player.level_index == self.current_level_index and player.health > 0:
                     player.draw(self.game_surface, offset=(0, 0), show_colliders=self.show_colliders)
+                    if self.show_nametags:
+                        self._draw_player_name(player, player_id)
 
             # Dessine les ennemis Jean-Eude
             for enemy in self.enemies:
@@ -659,7 +684,7 @@ class MultiplayerGame:
 
         # Dessine le menu pause par dessus (en coordonnees ecran, pas game_surface)
         if self.paused:
-            self.pause_menu.draw(self.screen, self.show_debug_info, self.show_colliders)
+            self.pause_menu.draw(self.screen, self.show_debug_info, self.show_colliders, self.show_nametags)
 
         pygame.display.flip()
     
