@@ -17,13 +17,11 @@ class PauseMenu:
     ]
 
     def __init__(self):
-        self.main_options = ["Reprendre", "Changer la resolution", "Debug info", "Colliders", "Nametags", "Quitter"]
+        self.main_options = ["Reprendre", "Changer la resolution", "Debug info", "Colliders", "Nametags", "Volume musique", "Quitter"]
         self.selected = 0
         self.show_resolutions = False
+        self.music_volume = 1.0
         self.selected_res = 3 # 1920x960 par defaut parceque pourquoi pas
-        self.font_title = pygame.font.Font(None, 80)
-        self.font_option = pygame.font.Font(None, 50)
-        self.font_hint = pygame.font.Font(None, 30)
 
     def reset(self):
         self.selected = 0
@@ -37,10 +35,18 @@ class PauseMenu:
         if not self.show_resolutions:
             if event.key == pygame.K_ESCAPE:
                 return "resume"
-            elif event.key in (pygame.K_UP,):
+            elif event.key == pygame.K_UP:
                 self.selected = (self.selected - 1) % len(self.main_options)
-            elif event.key in (pygame.K_DOWN,):
+            elif event.key == pygame.K_DOWN:
                 self.selected = (self.selected + 1) % len(self.main_options)
+            elif event.key == pygame.K_LEFT:
+                if self.selected == 5:
+                    self.music_volume = max(0.0, self.music_volume - 0.1)
+                    pygame.mixer.music.set_volume(self.music_volume)
+            elif event.key == pygame.K_RIGHT:
+                if self.selected == 5:
+                    self.music_volume = min(1.0, self.music_volume + 0.1)
+                    pygame.mixer.music.set_volume(self.music_volume)
             elif event.key == pygame.K_RETURN:
                 if self.selected == 0:
                     return "resume"
@@ -52,7 +58,7 @@ class PauseMenu:
                     return "toggle_colliders"
                 elif self.selected == 4:
                     return "toggle_nametags"
-                elif self.selected == 5:
+                elif self.selected == 6:
                     return "quit"
         else:
             if event.key == pygame.K_ESCAPE:
@@ -72,15 +78,22 @@ class PauseMenu:
         return None
 
     def draw(self, screen, show_debug, show_colliders, show_nametags):
-        overlay = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+        sw = screen.get_width()
+        sh = screen.get_height()
+        scale = min(sw / WINDOW_WIDTH, sh / WINDOW_HEIGHT)
+
+        overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 150))
         screen.blit(overlay, (0, 0))
 
-        cx = screen.get_width() // 2
-        cy = screen.get_height() // 2
+        cx = sw // 2
+        cy = sh // 2
 
-        title = self.font_title.render("MENU", True, WHITE)
-        screen.blit(title, title.get_rect(center=(cx, cy - 150)))
+        font_title = pygame.font.Font(None, max(16, int(80 * scale)))
+        font_option = pygame.font.Font(None, max(12, int(50 * scale)))
+
+        title = font_title.render("MENU", True, WHITE)
+        screen.blit(title, title.get_rect(center=(cx, cy - int(150 * scale))))
 
         if not self.show_resolutions:
             for i, opt in enumerate(self.main_options):
@@ -102,20 +115,22 @@ class PauseMenu:
                         label = "Nametags : ON"
                     else:
                         label = "Nametags : OFF"
+                elif i == 5:
+                    label = f"Volume musique : {int(self.music_volume * 100)}%"
                 else:
                     label = opt
-                text = self.font_option.render(label, True, color)
-                screen.blit(text, text.get_rect(center=(cx, cy - 40 + i * 60)))
+                text = font_option.render(label, True, color)
+                screen.blit(text, text.get_rect(center=(cx, cy + int((-40 + i * 60) * scale))))
         else:
-            title2 = self.font_option.render("Choisir une resolution :", True, WHITE)
-            screen.blit(title2, title2.get_rect(center=(cx, cy - 80)))
+            title2 = font_option.render("Choisir une resolution :", True, WHITE)
+            screen.blit(title2, title2.get_rect(center=(cx, cy - int(80 * scale))))
             for i, res in enumerate(self.RESOLUTIONS):
                 color = YELLOW
                 if i != self.selected_res:
                     color = WHITE
                 label = f"{res[0]} x {res[1]}" if res is not None else "Plein ecran"
-                text = self.font_option.render(label, True, color)
-                screen.blit(text, text.get_rect(center=(cx, cy - 20 + i * 55)))
+                text = font_option.render(label, True, color)
+                screen.blit(text, text.get_rect(center=(cx, cy + int((-20 + i * 55) * scale))))
 
 
 class MultiplayerGame:    

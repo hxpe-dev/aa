@@ -238,7 +238,7 @@ def launch_game():
     
     launcher = Launcher(screen)
     result = launcher.run()
-    pygame.mixer.music.stop() # <- stop la musique du menu TUDUTUUTU
+    # pygame.mixer.music.stop() # <- stop la musique du menu TUDUTUUTU
     
     if result is None:
         pygame.quit()

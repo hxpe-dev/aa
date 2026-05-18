@@ -1,6 +1,6 @@
 import os
 
-# Dimensions de la fenêtre
+# Dimensions de la fenêtre (NE PAS CHANGER)
 WINDOW_WIDTH = 1920
 WINDOW_HEIGHT = 960
 FPS = 60
