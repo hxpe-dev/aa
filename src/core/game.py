@@ -16,8 +16,22 @@ class PauseMenu:
         None,  # None = plein ecran
     ]
 
-    def __init__(self):
-        self.main_options = ["Reprendre", "Changer la resolution", "Debug info", "Colliders", "Nametags", "Volume musique", "Quitter"]
+    def __init__(self, is_multiplayer = False):
+        all_options = [
+            ("Reprendre", "resume"),
+            ("Changer la resolution", "resolutions"),
+            ("Debug info", "toggle_debug"),
+            ("Colliders", "toggle_colliders"),
+            ("Volume musique", "volume"),
+            ("Quitter", "quit")
+        ]
+        if is_multiplayer:
+            all_options.insert(4, ("Nametags", "toggle_nametags"))
+        self.main_options = []
+        self.option_keys = []
+        for label, key in all_options:
+            self.main_options.append(label)
+            self.option_keys.append(key)
         self.selected = 0
         self.show_resolutions = False
         self.music_volume = 1.0
@@ -40,25 +54,28 @@ class PauseMenu:
             elif event.key == pygame.K_DOWN:
                 self.selected = (self.selected + 1) % len(self.main_options)
             elif event.key == pygame.K_LEFT:
-                if self.selected == 5:
+                if self.option_keys[self.selected] == "volume":
                     self.music_volume = max(0.0, self.music_volume - 0.1)
                     pygame.mixer.music.set_volume(self.music_volume)
             elif event.key == pygame.K_RIGHT:
-                if self.selected == 5:
+                if self.option_keys[self.selected] == "volume":
                     self.music_volume = min(1.0, self.music_volume + 0.1)
                     pygame.mixer.music.set_volume(self.music_volume)
             elif event.key == pygame.K_RETURN:
-                if self.selected == 0:
+                key = self.option_keys[self.selected]
+                if key == "resume":
                     return "resume"
-                elif self.selected == 1:
+                elif key == "resolutions":
                     self.show_resolutions = True
-                elif self.selected == 2:
+                elif key == "toggle_debug":
                     return "toggle_debug"
-                elif self.selected == 3:
+                elif key == "toggle_colliders":
                     return "toggle_colliders"
-                elif self.selected == 4:
+                elif key == "toggle_nametags":
                     return "toggle_nametags"
-                elif self.selected == 6:
+                elif key == "volume":
+                    pass # géré par LEFT/RIGHT normalement
+                elif key == "quit":
                     return "quit"
         else:
             if event.key == pygame.K_ESCAPE:
@@ -98,24 +115,25 @@ class PauseMenu:
         if not self.show_resolutions:
             for i, opt in enumerate(self.main_options):
                 color = YELLOW
+                key = self.option_keys[i]
                 if i != self.selected:
                     color = WHITE
-                if i == 2:
+                if key == "toggle_debug":
                     if show_debug:
                         label = "Debug info : ON"
                     else:
                         label = "Debug info : OFF"
-                elif i == 3:
+                elif key == "toggle_colliders":
                     if show_colliders:
                         label = "Colliders : ON"
                     else:
                         label = "Colliders : OFF"
-                elif i == 4:
+                elif key == "toggle_nametags":
                     if show_nametags:
                         label = "Nametags : ON"
                     else:
                         label = "Nametags : OFF"
-                elif i == 5:
+                elif key == "volume":
                     label = f"Volume musique : {int(self.music_volume * 100)}%"
                 else:
                     label = opt
@@ -173,7 +191,8 @@ class MultiplayerGame:
 
         # Menu pause (au final ça s'appelle pause mais ca fait pas de pause mais tkt)
         self.paused = False
-        self.pause_menu = PauseMenu()
+        is_multiplayer = network_mode != NetworkMode.OFFLINE
+        self.pause_menu = PauseMenu(is_multiplayer=is_multiplayer)
         self.show_debug_info = SHOW_DEBUG_INFO
         self.show_colliders = SHOW_COLLIDERS
         self.show_nametags = SHOW_NAMETAGS
