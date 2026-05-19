@@ -6,12 +6,13 @@ from settings import *
 
 class SaveManager:
     def __init__(self):
-        os.makedirs(SAVE_DIR, exist_ok=True)  # crée le dossier saves/ si besoin
+        self.save_dir = os.path.join(os.environ.get("APPDATA", "."), "AbyssalAscension")
+        self.save_file = os.path.join(self.save_dir, "save.json")
+        os.makedirs(self.save_dir, exist_ok=True)
         self.autosave_counter = 0
-        self.playtime = 0  # en secondes
+        self.playtime = 0
 
     def build_save_data(self, game) -> dict:
-        # Construit le dictionnaire à sauvegarder depuis l'état du jeu
         player = game.local_player
         return {
             "player": {
@@ -28,22 +29,21 @@ class SaveManager:
 
     def save(self, game):
         data = self.build_save_data(game)
-        with open(SAVE_FILE, "w", encoding="utf-8") as f:
+        with open(self.save_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
         print(f"Sauvegarde effectuée à {data['meta']['timestamp']}")
 
     def load(self, game):
-        if not os.path.exists(SAVE_FILE):
+        if not os.path.exists(self.save_file):
             print("Aucune sauvegarde trouvée.")
             return False
 
-        with open(SAVE_FILE, "r", encoding="utf-8") as f:
+        with open(self.save_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # Restaure l'état du jeu
         p = data["player"]
         level_index = p["level"]
-        
+
         game.tilemap.load_level(level_index)
         game.colliders = game.tilemap.get_colliders()
         game.current_level_index = level_index
@@ -58,7 +58,6 @@ class SaveManager:
         return True
 
     def update(self, game, dt: float):
-        # À appeler chaque frame dans game.update()
         self.playtime += dt
         self.autosave_counter += 1
         if self.autosave_counter >= AUTOSAVE_INTERVAL:
