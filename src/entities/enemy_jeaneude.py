@@ -25,7 +25,7 @@ class JeanEude(BaseEntity):
         self.direction = 1 # 1 = droite, -1 = gauche
         
         self.walking_sprites = [
-            pygame.transform.scale(pygame.image.load(f'src\\assets\\mobs\\skeleton\\Walking\\Walking-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
+            pygame.transform.scale(pygame.image.load(f'assets\\mobs\\skeleton\\Walking\\Walking-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
         ]
         self.sprite = self.walking_sprites[0]
         self.image = self.sprite

@@ -152,7 +152,7 @@ class MultiplayerGame:
         self.remote_players: Dict[int, Player] = {}  # Les joueurs des autres dictionnaire du type {id: Player}
         
         # World        
-        self.tilemap = TileMap(ldtk_path="src/world/world_design.ldtk", level_index=0, scale=2.0)
+        self.tilemap = TileMap(ldtk_path="world/world_design.ldtk", level_index=0, scale=2.0)
         self.colliders = self.tilemap.get_colliders()
         self.current_level_index = 0
 

@@ -52,21 +52,21 @@ class Player(BaseEntity):
         # Apparence (bleu par défaut, à remplacer par sprite)
         self.sprite_size = 85
         self.current_sprite_index = 0
-        self.standing_sprite = pygame.transform.scale(pygame.image.load('src\\assets\\player\\player-0\\0-Standing-0.png').convert_alpha(), (self.sprite_size, self.sprite_size))
+        self.standing_sprite = pygame.transform.scale(pygame.image.load('assets\\player\\player-0\\0-Standing-0.png').convert_alpha(), (self.sprite_size, self.sprite_size))
         self.running_sprites = [
-            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Running-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(3)
+            pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Running-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(3)
         ]
         self.jumping_sprites = [
-            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Jumping-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
+            pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Jumping-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
         ]
         self.falling_sprites = [
-            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Falling-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(4)
+            pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Falling-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(4)
         ]
         self.dashing_sprites = [
-            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Dashing-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(3)
+            pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Dashing-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(3)
         ]
         self.sliding_sprites = [
-            pygame.transform.scale(pygame.image.load(f'src\\assets\\player\\player-0\\0-Sliding-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
+            pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Sliding-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
         ]
         self.sprite = self.standing_sprite
         self.sprite_counter = 0
@@ -74,9 +74,9 @@ class Player(BaseEntity):
         
         self.current_anim_state = "standing"
         
-        self.jump_sound = pygame.mixer.Sound("src\\assets\\sfx\\jump.mp3")
-        self.walk_sound = pygame.mixer.Sound("src\\assets\\sfx\\footsteps.mp3")
-        self.dash_sound = pygame.mixer.Sound("src\\assets\\sfx\\dash.mp3")
+        self.jump_sound = pygame.mixer.Sound("assets\\sfx\\jump.mp3")
+        self.walk_sound = pygame.mixer.Sound("assets\\sfx\\footsteps.mp3")
+        self.dash_sound = pygame.mixer.Sound("assets\\sfx\\dash.mp3")
         pygame.mixer.Sound.set_volume(self.jump_sound, 0.2)
         pygame.mixer.Sound.set_volume(self.walk_sound, 0.2)
         pygame.mixer.Sound.set_volume(self.dash_sound, 0.1)

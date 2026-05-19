@@ -28,7 +28,7 @@ def get_local_ip():
 class Launcher:
     def __init__(self, screen):
         self.screen = screen
-        self.background = pygame.image.load("src/assets/background.jpg").convert()
+        self.background = pygame.image.load("assets/background.jpg").convert()
         self.background = pygame.transform.scale(
             self.background, (WINDOW_WIDTH, WINDOW_HEIGHT)
         )
@@ -42,7 +42,7 @@ class Launcher:
         self.mode = None
         self.local_ip = get_local_ip()
 
-        pygame.mixer.music.load("src/assets/main_theme.mp3")
+        pygame.mixer.music.load("assets/main_theme.mp3")
         pygame.mixer.music.set_volume(1)
         pygame.mixer.music.play(-1)  # -1 = infinite loop
     
