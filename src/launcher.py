@@ -341,6 +341,8 @@ class Launcher:
 def launch_game():
     # Lance le launcher et démarre le jeu en fonction du choix de l'utilisateur
     pygame.init()
+    icon = pygame.image.load('assets/icon.png')
+    pygame.display.set_icon(icon)
     pygame.mixer.init()
     
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
