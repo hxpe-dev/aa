@@ -77,9 +77,12 @@ class Player(BaseEntity):
         self.jump_sound = pygame.mixer.Sound("assets\\sfx\\jump.mp3")
         self.walk_sound = pygame.mixer.Sound("assets\\sfx\\footsteps.mp3")
         self.dash_sound = pygame.mixer.Sound("assets\\sfx\\dash.mp3")
-        pygame.mixer.Sound.set_volume(self.jump_sound, 0.2)
-        pygame.mixer.Sound.set_volume(self.walk_sound, 0.2)
-        pygame.mixer.Sound.set_volume(self.dash_sound, 0.1)
+        self.jump_base_volume = 0.2
+        self.walk_base_volume = 0.2
+        self.dash_base_volume = 0.1
+        pygame.mixer.Sound.set_volume(self.jump_sound, self.jump_base_volume)
+        pygame.mixer.Sound.set_volume(self.walk_sound, self.walk_base_volume)
+        pygame.mixer.Sound.set_volume(self.dash_sound, self.dash_base_volume)
 
         
     
@@ -397,6 +400,10 @@ class Player(BaseEntity):
             self.sprite = self.standing_sprite
             self.sprite_counter = 0
 
+    def set_sfx_volume(self, volume: float):
+        self.jump_sound.set_volume(self.jump_base_volume * volume)
+        self.walk_sound.set_volume(self.walk_base_volume * volume)
+        self.dash_sound.set_volume(self.dash_base_volume * volume)
 
     def start_dash(self):
         # Démarre un dash dans la direction du joueur

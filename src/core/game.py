@@ -23,6 +23,7 @@ class PauseMenu:
             ("Debug info", "toggle_debug"),
             ("Colliders", "toggle_colliders"),
             ("Volume musique", "volume"),
+            ("Volume effets", "sfx_volume"),
             ("Quitter", "quit")
         ]
         if is_multiplayer:
@@ -35,6 +36,7 @@ class PauseMenu:
         self.selected = 0
         self.show_resolutions = False
         self.music_volume = 1.0
+        self.sfx_volume = 1.0
         self.selected_res = 3 # 1920x960 par defaut parceque pourquoi pas
 
     def reset(self):
@@ -57,10 +59,14 @@ class PauseMenu:
                 if self.option_keys[self.selected] == "volume":
                     self.music_volume = max(0.0, self.music_volume - 0.1)
                     pygame.mixer.music.set_volume(self.music_volume)
+                elif self.option_keys[self.selected] == "sfx_volume":
+                    self.sfx_volume = max(0.0, self.sfx_volume - 0.1)
             elif event.key == pygame.K_RIGHT:
                 if self.option_keys[self.selected] == "volume":
                     self.music_volume = min(1.0, self.music_volume + 0.1)
                     pygame.mixer.music.set_volume(self.music_volume)
+                elif self.option_keys[self.selected] == "sfx_volume":
+                    self.sfx_volume = min(1.0, self.sfx_volume + 0.1)
             elif event.key == pygame.K_RETURN:
                 key = self.option_keys[self.selected]
                 if key == "resume":
@@ -135,6 +141,8 @@ class PauseMenu:
                         label = "Nametags : OFF"
                 elif key == "volume":
                     label = f"Volume musique : {int(self.music_volume * 100)}%"
+                elif key == "sfx_volume":
+                    label = f"Volume effets : {int(self.sfx_volume * 100)}%"
                 else:
                     label = opt
                 text = font_option.render(label, True, color)
@@ -160,7 +168,8 @@ class MultiplayerGame:
         self.font_player_name = pygame.font.Font(None, 22)
         self.running = True
         self.network_mode = network_mode
-        
+
+        self.sfx_volume = 1.0
 
         # Composants Network
         self.server: Optional[NetworkServer] = None
@@ -434,6 +443,10 @@ class MultiplayerGame:
         if self.game_over and self.remote_players and not self.all_players_dead:
             if all(p.health <= 0 for p in self.remote_players.values()):
                 self.all_players_dead = True
+
+        if self.local_player and self.pause_menu.sfx_volume != self.sfx_volume:
+            self.sfx_volume = self.pause_menu.sfx_volume
+            self.local_player.set_sfx_volume(self.sfx_volume)
 
         if not self.game_over:
             # Met à jour notre joueur local
