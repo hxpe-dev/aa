@@ -19,8 +19,8 @@ DARK_GRAY = (64, 64, 64)
 PLAYER_WIDTH = 35
 PLAYER_HEIGHT = 75
 PLAYER_SPEED = 7  # Vitesse de marche horizontale
-PLAYER_ACCELERATION = 0.5  # Accélération horizontale
-PLAYER_DECELERATION = 0.6  # Décélération horizontale
+PLAYER_ACCELERATION = 0.4  # Accélération horizontale
+PLAYER_DECELERATION = 0.7  # Décélération horizontale
 PLAYER_JUMP_FORCE = -12  # Force du saut (négative = vers le haut)
 PLAYER_FALL_ACCELERATION = 0.6  # Accélération de chute (alias gravité)
 PLAYER_MAX_FALL_SPEED = 16  # Vitesse max de chute
