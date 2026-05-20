@@ -5,9 +5,9 @@ from settings import *
 from typing import Optional, List
 
 class BossState:
-    IDLE = "idle" # marche vers le joueur, choisit la prochaine attaque
-    SWORD = "sword" # coup d'epee corps a corps
-    SLAM = "slam" # saut + ecrasement + onde de choc
+    IDLE = "idle" # Se déplace, évalue la situation et attend le bon moment
+    SWORD = "sword" # Coup d'épée au corps-à-corps
+    SLAM = "slam" # Saut + écrasement + onde de choc
 
 class Boss(BaseEntity):
     def __init__(self, x: float, y: float):
@@ -18,28 +18,28 @@ class Boss(BaseEntity):
         self.is_dead = False
         self.hit_flash_counter = 0
 
-        # Placeholder rectangle violet, a remplacer par des sprites
+        # Placeholder rectangle violet
         self.image = pygame.Surface((BOSS_WIDTH, BOSS_HEIGHT))
         self.image.fill((120, 0, 160))
         self.rect = self.image.get_rect(topleft=(x, y))
 
         self.target_player = None
-
         self.state = BossState.IDLE
-        self.idle_timer = 90
-
-        # Phase 2 declenchee a 50% de vie
+        
+        self.idle_timer = 60
+        self.sword_cooldown = 0 # Empêche le spam de l'attaque mêlée
+        
+        # Phase 2 déclenchée à 50% de vie
         self.phase2 = False
 
-        # Epee : sword_phase 0 = prep, 1 = hitbox active
+        # Épée
         self.sword_phase = 0
         self.sword_timer = 0
         self.sword_hit_this_attack = False
 
-        # Slam : slam_phase 0 = saut, 1 = chute forcee, 2 = onde de choc
+        # Slam
         self.slam_phase = 0
-        self.shockwave_left = None
-        self.shockwave_right = None
+        self.shockwave_rect = None  
         self.shockwave_timer = 0
         self.shockwave_hit_players = set()
 
@@ -66,6 +66,10 @@ class Boss(BaseEntity):
         if players:
             self.target_player = self._find_closest_player(players)
 
+        # Diminution des CD
+        if self.sword_cooldown > 0:
+            self.sword_cooldown -= 1
+
         self._run_state_machine(players)
         self._apply_gravity()
         self._move_and_collide(colliders)
@@ -88,15 +92,11 @@ class Boss(BaseEntity):
 
         surface.blit(img, (rx, ry))
 
-        # Hitbox epee visible pendant la phase active
         if self.state == BossState.SWORD and self.sword_phase == 1:
             pygame.draw.rect(surface, (255, 220, 0), self.get_sword_rect().move(offset[0], offset[1]), 3)
 
-        # Onde de choc visible (element de gameplay)
-        if self.shockwave_left:
-            pygame.draw.rect(surface, (255, 140, 0), self.shockwave_left.move(offset[0], offset[1]), 4)
-        if self.shockwave_right:
-            pygame.draw.rect(surface, (255, 140, 0), self.shockwave_right.move(offset[0], offset[1]), 4)
+        if self.shockwave_rect:
+            pygame.draw.rect(surface, (255, 140, 0), self.shockwave_rect.move(offset[0], offset[1]), 4)
 
         if show_colliders:
             pygame.draw.rect(surface, (200, 0, 255), self.rect.move(offset[0], offset[1]), 2)
@@ -117,38 +117,54 @@ class Boss(BaseEntity):
         dx = self.target_player.x - self.x
         dist = abs(dx)
 
-        self.direction = 1
+        self.direction = 1 
         if dx < 0:
             self.direction = -1
 
+        # Vitesse augmentée en Phase 2
         speed = BOSS_WALK_SPEED
         if self.phase2:
-            speed = BOSS_WALK_SPEED * 1.4
-
+            speed = BOSS_WALK_SPEED * 1.5
         self.velocity_x = self.direction * speed
 
         if dist < BOSS_MELEE_RANGE:
-            self.velocity_x = 0
-            self._start_sword()
-            return
+            # Si le joueur est proche mais que l'épée est en cooldown, le boss prend une décision imprévisible
+            if self.sword_cooldown <= 0:
+                # 70% de chance de mettre un coup d'épée, 30% de chance de faire un Slam intant
+                if random.random() < 0.70:
+                    self.velocity_x = 0
+                    self._start_sword()
+                else:
+                    self._start_slam()
+                return
+            else:
+                # L'épée est en cooldown ! Pour éviter de rester passif, il a 40% de chance de punir l'esquive du joueur avec un Slam
+                if random.random() < 0.40 and self.is_grounded:
+                    self._start_slam()
+                    return
 
+        # Gestion du timer de l'état IDLE (comportement à distance)
         self.idle_timer -= 1
         if self.idle_timer <= 0:
-            self.state = BossState.SLAM
-            self.slam_phase = 0
-            self.idle_timer = 90
-            if self.phase2:
-                self.idle_timer = 50
+            self._start_slam()
 
     def _start_sword(self):
         self.state = BossState.SWORD
         self.sword_phase = 0
         self.sword_timer = BOSS_SWORD_PREP
         self.sword_hit_this_attack = False
+        # cooldown pour le prochain coup (plus court en Phase 2)
+        self.sword_cooldown = 45 if self.phase2 else 90
+
+    def _start_slam(self):
+        self.state = BossState.SLAM
+        self.slam_phase = 0
+        self.velocity_x = 0  # Immobilisation au sol avant le saut
 
     def _state_sword(self, players):
         self.velocity_x = 0
 
+        # Ajuste la direction uniquement pendant la préparation du coup
         if self.target_player and self.sword_phase == 0:
             self.direction = 1 if self.target_player.x > self.x else -1
 
@@ -174,20 +190,27 @@ class Boss(BaseEntity):
 
     def get_sword_rect(self) -> pygame.Rect:
         if self.direction == 1:
-            ax = self.x + self.width
+            ax = self.rect.right
         else:
-            ax = self.x - BOSS_SWORD_RANGE_W
-        ay = self.y + (self.height - BOSS_SWORD_RANGE_H) // 2
+            ax = self.rect.left - BOSS_SWORD_RANGE_W
+        ay = self.rect.centery - BOSS_SWORD_RANGE_H // 2
         return pygame.Rect(int(ax), int(ay), BOSS_SWORD_RANGE_W, BOSS_SWORD_RANGE_H)
 
     def _state_slam(self, players):
         if self.slam_phase == 0:
             if self.is_grounded:
                 self.velocity_y = BOSS_SLAM_JUMP_FORCE
+                
+                # saute en bougeant horizontalement pour traquer le joueur
+                if self.target_player:
+                    dx = self.target_player.x - self.rect.centerx
+                    self.velocity_x = (1 if dx > 0 else -1) * min(abs(dx) * 0.08, BOSS_WALK_SPEED * 2)
+            
             if self.velocity_y >= 0:
                 self.slam_phase = 1
 
         elif self.slam_phase == 1:
+            # Chute forcée vers le sol
             self.velocity_y = BOSS_SLAM_FALL_SPEED
             if self.collision_bottom:
                 self._create_shockwave()
@@ -199,35 +222,32 @@ class Boss(BaseEntity):
             self.velocity_x = 0
             self.shockwave_timer -= 1
 
-            if players:
+            if players and self.shockwave_rect:
                 for player in players:
                     if player.health <= 0 or player in self.shockwave_hit_players:
                         continue
                     if not player.is_grounded:
                         continue
-                    player_rect = player.get_rect()
-                    if ((self.shockwave_left and player_rect.colliderect(self.shockwave_left)) or (self.shockwave_right and player_rect.colliderect(self.shockwave_right))):
+                    if player.get_rect().colliderect(self.shockwave_rect):
                         player.take_damage(BOSS_SHOCKWAVE_DAMAGE)
                         self.shockwave_hit_players.add(player)
 
             if self.shockwave_timer <= 0:
-                self.shockwave_left = None
-                self.shockwave_right = None
                 self._end_attack()
 
     def _create_shockwave(self):
-        sw_h = 28
+        sw_h = 30
         sw_w = BOSS_SHOCKWAVE_WIDTH
-        y = self.y + self.height - sw_h
-        self.shockwave_left = pygame.Rect(self.x - sw_w, y, sw_w, sw_h)
-        self.shockwave_right = pygame.Rect(self.x + self.width, y, sw_w, sw_h)
+        lx = self.rect.left - sw_w
+        y = self.rect.bottom - sw_h
+        total_width = sw_w + self.rect.width + sw_w
+        self.shockwave_rect = pygame.Rect(int(lx), int(y), total_width, sw_h)
 
     def _end_attack(self):
         self.velocity_x = 0
         self.state = BossState.IDLE
-        self.idle_timer = 90
-        if self.phase2:
-            self.idle_timer = 50
+        self.shockwave_rect = None
+        self.idle_timer = 40 if self.phase2 else 75
 
     def _find_closest_player(self, players: list):
         closest = None
@@ -235,7 +255,7 @@ class Boss(BaseEntity):
         for player in players:
             if player is None or player.health <= 0:
                 continue
-            dist = abs(player.x - self.x)
+            dist = abs(player.x - self.rect.centerx)
             if dist < closest_dist:
                 closest_dist = dist
                 closest = player
