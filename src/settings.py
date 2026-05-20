@@ -36,15 +36,32 @@ PLAYER_WALL_SLIDE_SPEED = 3
 
 # Attaque du joueur
 PLAYER_ATTACK_DAMAGE = 20
-PLAYER_ATTACK_DURATION = 15   # frames
-PLAYER_ATTACK_COOLDOWN = 40   # frames
-PLAYER_ATTACK_RANGE_W = 55    # largeur de la hitbox
-PLAYER_ATTACK_RANGE_H = 60    # hauteur de la hitbox
+PLAYER_ATTACK_DURATION = 15
+PLAYER_ATTACK_COOLDOWN = 25
+PLAYER_ATTACK_RANGE_W = 55
+PLAYER_ATTACK_RANGE_H = 60
 
 # Paramètres des ennemis
 ENEMY_SPEED = 2
 ENEMY_PATROL_DISTANCE = 100
 ENEMY_AGGRO_RANGE = 200
+
+# Boss
+BOSS_MAX_HEALTH = 500
+BOSS_WIDTH = 80
+BOSS_HEIGHT = 120
+BOSS_WALK_SPEED = 3
+BOSS_MELEE_RANGE = 150
+BOSS_SLAM_JUMP_FORCE = -22
+BOSS_SLAM_FALL_SPEED = 22
+BOSS_SHOCKWAVE_DAMAGE = 20
+BOSS_SHOCKWAVE_DURATION = 18  # frames
+BOSS_SHOCKWAVE_WIDTH = 67
+BOSS_SWORD_DAMAGE = 30
+BOSS_SWORD_PREP = 35  # frames de preparation avant le coup (pour que le joueur ait le temps de réagir)
+BOSS_SWORD_ACTIVE = 12  # frames ou la hitbox existe
+BOSS_SWORD_RANGE_W = 120  # largeur de la hitbox épée
+BOSS_SWORD_RANGE_H = 80  # hauteur de la hitbox épée
 
 # Vie de Jean-Eude
 JEANEUDE_MAX_HEALTH = 50

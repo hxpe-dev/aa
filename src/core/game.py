@@ -5,6 +5,7 @@ from world.tilemap import TileMap
 from network.network_manager import NetworkMode, NetworkServer, NetworkClient, PlayerState
 from typing import Dict, Optional
 from entities.enemy_jeaneude import JeanEude
+from entities.enemy_boss import Boss
 from core.save_manager import SaveManager
 
 class PauseMenu:
@@ -35,8 +36,8 @@ class PauseMenu:
             self.option_keys.append(key)
         self.selected = 0
         self.show_resolutions = False
-        self.music_volume = 1.0
-        self.sfx_volume = 1.0
+        self.music_volume = 0.5
+        self.sfx_volume = 0.5
         self.selected_res = 3 # 1920x960 par defaut parceque pourquoi pas
 
     def reset(self):
@@ -57,16 +58,16 @@ class PauseMenu:
                 self.selected = (self.selected + 1) % len(self.main_options)
             elif event.key == pygame.K_LEFT:
                 if self.option_keys[self.selected] == "volume":
-                    self.music_volume = max(0.0, self.music_volume - 0.1)
+                    self.music_volume = round(max(0.0, self.music_volume - 0.1), 1)
                     pygame.mixer.music.set_volume(self.music_volume)
                 elif self.option_keys[self.selected] == "sfx_volume":
-                    self.sfx_volume = max(0.0, self.sfx_volume - 0.1)
+                    self.sfx_volume = round(max(0.0, self.sfx_volume - 0.1), 1)
             elif event.key == pygame.K_RIGHT:
                 if self.option_keys[self.selected] == "volume":
-                    self.music_volume = min(1.0, self.music_volume + 0.1)
+                    self.music_volume = round(min(1.0, self.music_volume + 0.1), 1)
                     pygame.mixer.music.set_volume(self.music_volume)
                 elif self.option_keys[self.selected] == "sfx_volume":
-                    self.sfx_volume = min(1.0, self.sfx_volume + 0.1)
+                    self.sfx_volume = round(min(1.0, self.sfx_volume + 0.1), 1)
             elif event.key == pygame.K_RETURN:
                 key = self.option_keys[self.selected]
                 if key == "resume":
@@ -169,7 +170,8 @@ class MultiplayerGame:
         self.running = True
         self.network_mode = network_mode
 
-        self.sfx_volume = 1.0
+        self.sfx_volume = 0.5
+        self.boss_music_playing = False
 
         # Composants Network
         self.server: Optional[NetworkServer] = None
@@ -562,6 +564,8 @@ class MultiplayerGame:
         enemies = []
         for spawn in self.tilemap.get_enemy_spawns():
             enemies.append(JeanEude(x=spawn["x"], y=spawn["y"], patrol_range=150))
+        for spawn in self.tilemap.get_boss_spawns():
+            enemies.append(Boss(x=spawn["x"], y=spawn["y"]))
         return enemies
             
     def _check_door_transitions(self):
@@ -591,6 +595,7 @@ class MultiplayerGame:
             self.tilemap.load_level(level_index)
             self.colliders = self.tilemap.get_colliders()
             self.enemies = self._spawn_enemies_from_map()
+            self._update_music_for_level()
             self.current_level_index = level_index
             self.local_player.level_index = level_index
 
@@ -640,9 +645,19 @@ class MultiplayerGame:
             print(f"Transition vers niveau {level_index}")
             return
     
-    def check_global_collisions(self):
-        # Check les collisions globales (pas encore implementé TODO)
-        pass
+    def _update_music_for_level(self):
+        entering_boss = len(self.tilemap.get_boss_spawns()) > 0
+
+        if entering_boss and not self.boss_music_playing:
+            pygame.mixer.music.load("assets/boss.mp3")
+            pygame.mixer.music.set_volume(self.pause_menu.music_volume)
+            pygame.mixer.music.play(-1)
+            self.boss_music_playing = True
+        elif not entering_boss and self.boss_music_playing:
+            pygame.mixer.music.load("assets/main_theme.mp3")
+            pygame.mixer.music.set_volume(self.pause_menu.music_volume)
+            pygame.mixer.music.play(-1)
+            self.boss_music_playing = False
 
     def _draw_player_name(self, player, player_id):
         name = f"Player {player_id + 1}"
@@ -742,7 +757,7 @@ class MultiplayerGame:
             if self.show_debug_info:
                 self._draw_debug_info()
 
-            # Dessine le HUD (seulement barre de vie pour le moment )
+            # Dessine le HUD (seulement barre de vie pour le moment ) + barre de boss
             self._draw_hud()
 
         # Scale game_surface en conservant le ratio (letterbox si necessaire, cad avec les bandes noires sinon le jeu est déformé)
@@ -795,6 +810,28 @@ class MultiplayerGame:
         label = font.render(f"PV {self.local_player.health} / {PLAYER_MAX_HEALTH}", True, WHITE)
         self.game_surface.blit(label, (bar_x, bar_y - 18))
 
+        # affichage barre de vie du boss
+        boss = None
+        for e in self.enemies:
+            if isinstance(e, Boss) and e.health > 0:
+                boss = e
+                break
+        if boss:
+            bx = self.game_surface.get_width() // 2
+            by = 20
+            bw = 600
+            bh = 25
+            ratio = max(0, boss.health / BOSS_MAX_HEALTH)
+            bar_color = (200, 40, 40)
+            if boss.phase2:
+                bar_color = (255, 100, 0)
+            pygame.draw.rect(self.game_surface, DARK_GRAY, (bx - bw // 2, by, bw, bh))
+            pygame.draw.rect(self.game_surface, bar_color, (bx - bw // 2, by, int(bw * ratio), bh))
+            pygame.draw.rect(self.game_surface, WHITE, (bx - bw // 2, by, bw, bh), 2)
+            font = pygame.font.Font(None, 24)
+            label = font.render("Sire Radiantus Maximus", True, WHITE)
+            self.game_surface.blit(label, label.get_rect(center=(bx, by + bh + 12)))
+    
     def _draw_debug_info(self):
         # Affiche les infos de debug sur l'écran
         
@@ -829,7 +866,6 @@ class MultiplayerGame:
             
             self.handle_input()
             self.update(1 / FPS)
-            self.check_global_collisions()
             self.draw()
             
             self.clock.tick(FPS)

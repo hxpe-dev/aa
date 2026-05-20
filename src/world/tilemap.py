@@ -58,6 +58,11 @@ class TileMap:
             return self._ldtk_level.get_enemy_spawns()
         return []
 
+    def get_boss_spawns(self) -> list:
+        if self._ldtk_level:
+            return self._ldtk_level.get_boss_spawns()
+        return []
+
     def get_colliders(self) -> List[pygame.Rect]:
         if self._ldtk_level:
             return self._ldtk_level.get_colliders()

@@ -79,6 +79,7 @@ class LDtkLevel:
         self.colliders: List[pygame.Rect] = []
         self.spawn_point: Tuple[float, float] = (100.0, 100.0)
         self.enemy_spawns: List[dict] = []
+        self.boss_spawns: List[dict] = []
         self.doors: List[dict] = []
 
         self._parse_layers()
@@ -209,9 +210,17 @@ class LDtkLevel:
                     "x": float(px[0]) * self.scale,
                     "y": float(px[1]) * self.scale,
                 })
+            elif identifier == "BOSS":
+                self.boss_spawns.append({
+                    "x": float(px[0]) * self.scale,
+                    "y": float(px[1]) * self.scale,
+                })
 
     def get_enemy_spawns(self) -> List[dict]:
         return self.enemy_spawns
+
+    def get_boss_spawns(self) -> List[dict]:
+        return self.boss_spawns
 
     def get_colliders(self) -> List[pygame.Rect]:
         return self.colliders

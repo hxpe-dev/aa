@@ -39,7 +39,7 @@ class Launcher:
         self.running = True
         self.selected = 0  # 0=Offline, 1=Server, 2=Client, 3=Settings
         self.settings_selected = 0
-        self.music_volume = 1.0
+        self.music_volume = 0.5
         self.settings_res_selected = 3 #1920x960 par defaut
         self.show_res_in_settings = False
         self.RESOLUTIONS = [(960, 480), (1280, 640), (1600, 800), (1920, 960), None]
@@ -48,7 +48,7 @@ class Launcher:
         self.local_ip = get_local_ip()
 
         pygame.mixer.music.load("assets/main_theme.mp3")
-        pygame.mixer.music.set_volume(1)
+        pygame.mixer.music.set_volume(self.music_volume)
         pygame.mixer.music.play(-1)  # -1 = infinite loop
     
     def handle_events(self):
@@ -106,11 +106,11 @@ class Launcher:
                             self.settings_selected = (self.settings_selected + 1) % 3
                         elif event.key == pygame.K_LEFT:
                             if self.settings_selected == 1:
-                                self.music_volume = max(0.0, self.music_volume - 0.1)
+                                self.music_volume = round(max(0.0, self.music_volume - 0.1), 1)
                                 pygame.mixer.music.set_volume(self.music_volume)
                         elif event.key == pygame.K_RIGHT:
                             if self.settings_selected == 1:
-                                self.music_volume = min(2.0, self.music_volume + 0.1)
+                                self.music_volume = round(min(1.0, self.music_volume + 0.1), 1)
                                 pygame.mixer.music.set_volume(self.music_volume)
                         elif event.key == pygame.K_RETURN:
                             if self.settings_selected == 0:
