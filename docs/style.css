@@ -238,3 +238,45 @@ body {
         gap: 1rem;
     }
 }
+
+
+
+/* RESSOURCES */
+.resources-grid {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    flex-wrap: wrap;
+}
+
+
+.resource-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem 3rem;
+    background: rgba(30, 58, 138, 0.3);
+    border: 1px solid #1e3a8a;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #e0e0e0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.resource-card:hover {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 15px 30px rgba(96, 165, 250, 0.25);
+    color: #60a5fa;
+}
+
+.resource-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+.resource-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
