@@ -17,6 +17,8 @@ class Player(BaseEntity):
         self.hit_flash_counter = 0
         self.direction = 1  # 1 = droite, -1 = gauche
         self.level_index = 0
+        self.is_dying = False
+        self.death_ping_pong = 1 # pr les 2 dernieres frames de l'anim de mort qui alternent
         
         # Mouvement Horizontal
         self.input_direction = 0  # -1 (gauche), 0 (arrêt), ou 1 (droite)
@@ -68,6 +70,12 @@ class Player(BaseEntity):
         self.sliding_sprites = [
             pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Sliding-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(2)
         ]
+        self.attacking_sprites = [
+            pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Attacking-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(4)
+        ]
+        self.death_sprites = [
+            pygame.transform.scale(pygame.image.load(f'assets\\player\\player-0\\0-Death-{i}.png').convert_alpha(), (self.sprite_size, self.sprite_size)) for i in range(4)
+        ]
         self.sprite = self.standing_sprite
         self.sprite_counter = 0
         self.image = self.sprite
@@ -89,6 +97,10 @@ class Player(BaseEntity):
     def handle_input(self, keys):
         # Traite les entrées du clavier pour le mouvement
         # keys = état des touches du clavier (pygame.key.get_pressed())
+
+        if self.is_dying:
+            self.input_direction = 0
+            return
         
         # Mouvement horizontal (Q/D ou flèches)
         self.input_direction = 0
@@ -368,7 +380,38 @@ class Player(BaseEntity):
             
     def _update_animation(self):
         self.sprite_counter += 1
-        if self.dash_active:
+
+        if self.is_dying:
+            self.current_anim_state = "death"
+            
+            if self.sprite not in self.death_sprites:
+                self.current_sprite_index = 0
+                self.sprite = self.death_sprites[0]
+                self.sprite_counter = 0
+            
+            if self.sprite_counter >= 10:
+                if self.current_sprite_index < len(self.death_sprites) - 1 and self.death_ping_pong == 1:
+                    self.current_sprite_index += 1
+                else:
+                    idx_avant_derniere = len(self.death_sprites) - 2
+                    idx_derniere = len(self.death_sprites) - 1
+                    self.current_sprite_index += self.death_ping_pong
+                    if self.current_sprite_index > idx_derniere:
+                        self.current_sprite_index = idx_avant_derniere
+                        self.death_ping_pong = -1
+                    elif self.current_sprite_index < idx_avant_derniere:
+                        self.current_sprite_index = idx_derniere
+                        self.death_ping_pong = 1
+                self.sprite = self.death_sprites[self.current_sprite_index]
+                self.sprite_counter = 0
+
+        elif self.attack_active:
+            self.current_anim_state = "attacking"
+            if self.sprite_counter >= 5:
+                self.current_sprite_index = (self.current_sprite_index + 1) % len(self.attacking_sprites)
+                self.sprite = self.attacking_sprites[self.current_sprite_index]
+                self.sprite_counter = 0
+        elif self.dash_active:
             self.current_anim_state = "dashing"
             if self.sprite_counter >= 5:
                 self.current_sprite_index = (self.current_sprite_index + 1) % len(self.dashing_sprites)
@@ -441,6 +484,13 @@ class Player(BaseEntity):
         # Inflige des dégâts au joueur
         self.health = max(0, self.health - damage)
         self.hit_flash_counter = 15 #nb de frames ou on affiche le joueur en rouge
+
+        if self.health <= 0 and not self.is_dying:
+            self.is_dying = True
+            self.current_sprite_index = 0
+            self.sprite_counter = 0
+            self.velocity_x = 0
+
         return self.health <= 0
     
     def heal(self, amount: int):

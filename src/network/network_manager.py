@@ -30,6 +30,7 @@ class PlayerState:
         self.is_grounded = False
         self.dash_active = False
         self.is_wall_sliding = False
+        self.is_dying = False
     
     def to_dict(self) -> Dict:
         return {
@@ -46,6 +47,7 @@ class PlayerState:
             'is_grounded': self.is_grounded,
             'dash_active': self.dash_active,
             'is_wall_sliding': self.is_wall_sliding,
+            'is_dying': self.is_dying,
         }
     
     def from_dict(self, data: Dict):
@@ -63,6 +65,7 @@ class PlayerState:
         self.is_grounded = data.get('is_grounded', self.is_grounded)
         self.dash_active = data.get('dash_active', self.dash_active)
         self.is_wall_sliding = data.get('is_wall_sliding', self.is_wall_sliding)
+        self.is_dying = data.get('is_dying', self.is_dying)
 
 
 class NetworkServer:

@@ -258,6 +258,12 @@ class MultiplayerGame:
             self.local_player = Player(self.spawn_x, self.spawn_y)
             self.connection_status = "Offline mode"
             self.save_manager.load(self)  # charge si une save existe
+            if self.local_player and self.local_player.health <= 0:
+                self.local_player.is_dying = True
+                self.local_player.current_sprite_index = 0
+                self.local_player.sprite_counter = 0
+                self.local_player.velocity_x = 0
+                self.local_player.velocity_y = 0
     
     def connect_as_client(self, server_ip: str) -> bool:
         # Renvoie True si connexion réussie, False sinon
@@ -305,12 +311,15 @@ class MultiplayerGame:
         player.dash_active = state.dash_active
         player.is_wall_sliding = state.is_wall_sliding
         player.is_grounded = state.is_grounded
+        player.is_dying = state.is_dying
  
         # Choisit le bon sprite selon l'état reçu
         anim = state.anim_state
         frame = state.anim_frame
  
         sprites_map = {
+            "death": player.death_sprites,
+            "attacking": player.attacking_sprites,
             "running": player.running_sprites,
             "jumping": player.jumping_sprites,
             "falling": player.falling_sprites,
@@ -468,22 +477,37 @@ class MultiplayerGame:
             return
 
         # Vérifie si le joueur est mort
-        if self.local_player and self.local_player.health <= 0 and not self.game_over:
-            self.game_over = True
-            pygame.mixer.music.load("assets/game_over.mp3")
-            pygame.mixer.music.set_volume(self.pause_menu.music_volume)
-            pygame.mixer.music.play(-1)
-            self.gameover_music_playing = True
-            if self.network_mode != NetworkMode.OFFLINE:
-                self.respawn_cooldown = RESPAWN_COOLDOWN
+        if self.local_player and self.local_player.is_dying and not self.game_over:
+            if self.respawn_cooldown == 0:
+                self.respawn_cooldown = 180
 
-        if self.game_over and self.respawn_cooldown > 0:
+            self.respawn_cooldown -= 1
+
+            if self.respawn_cooldown <= 0:
+                self.game_over = True
+                self.local_player.is_dying = False
+                pygame.mixer.music.load("assets/game_over.mp3")
+                pygame.mixer.music.set_volume(self.pause_menu.music_volume)
+                pygame.mixer.music.play(-1)
+                self.gameover_music_playing = True
+                if self.network_mode != NetworkMode.OFFLINE:
+                    self.respawn_cooldown = RESPAWN_COOLDOWN
+                else:
+                    self.respawn_cooldown = 0
+
+        if self.game_over and self.network_mode != NetworkMode.OFFLINE and self.respawn_cooldown > 0:
             self.respawn_cooldown -= 1
 
         # Vérifie si tous les joueurs sont morts (multi seulement)
-        if self.game_over and self.remote_players and not self.all_players_dead:
-            if all(p.health <= 0 for p in self.remote_players.values()):
-                self.all_players_dead = True
+        if self.remote_players and not self.all_players_dead:
+            if (self.local_player and self.local_player.is_dying) or self.game_over:
+                all_dead = True
+                for p in self.remote_players.values():
+                    if p.health > 0 and p.current_anim_state != "death":
+                        all_dead = False
+                        break
+                if all_dead:
+                    self.all_players_dead = True
 
         if self.local_player and self.pause_menu.sfx_volume != self.sfx_volume:
             self.sfx_volume = self.pause_menu.sfx_volume
@@ -605,6 +629,7 @@ class MultiplayerGame:
         local_state.is_grounded = self.local_player.is_grounded
         local_state.dash_active = self.local_player.dash_active
         local_state.is_wall_sliding = self.local_player.is_wall_sliding
+        local_state.is_dying = self.local_player.is_dying
         
         if self.server:
             # Si on est serveur : on met à jour notre propre état et on broadcast à tous
@@ -789,6 +814,7 @@ class MultiplayerGame:
             self.local_player.level_index = 0
             self.local_player.reset_position(self.spawn_x, self.spawn_y)
             self.local_player.health = PLAYER_MAX_HEALTH
+            self.local_player.is_dying = False
         # Respawn les ennemis en offline ou si tout le monde est mort en multi
         if self.network_mode == NetworkMode.OFFLINE or all_dead:
             self.enemies = self._spawn_enemies_from_map()
@@ -844,7 +870,8 @@ class MultiplayerGame:
 
             # Dessine les joueurs distants (seulement si ils sont vivants)
             for player_id, player in self.remote_players.items():
-                if player.level_index == self.current_level_index and player.health > 0:
+                visible = player.health > 0 or player.is_dying
+                if player.level_index == self.current_level_index and visible:
                     player.draw(self.game_surface, offset=(0, 0), show_colliders=self.show_colliders)
                     if self.show_nametags:
                         self._draw_player_name(player, player_id)
