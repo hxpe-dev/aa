@@ -62,10 +62,10 @@ class Launcher:
                 # Main menu navigation
                 if self.mode is None:
                     if event.key == pygame.K_UP:
-                        self.selected = (self.selected - 1) % 4
+                        self.selected = (self.selected - 1) % 5
                     
                     elif event.key == pygame.K_DOWN:
-                        self.selected = (self.selected + 1) % 4
+                        self.selected = (self.selected + 1) % 5
                     
                     elif event.key == pygame.K_RETURN:
                         if self.selected == 0:  # Offline
@@ -77,6 +77,9 @@ class Launcher:
                             pygame.key.set_text_input_rect(pygame.Rect(300, 350, 600, 50))
                         elif self.selected == 3:  # Settings
                             self.mode = "settings"
+                        elif self.selected == 4:  # bye bye
+                            self.running = False
+                            return None
                     
                     elif event.key == pygame.K_ESCAPE:
                         self.running = False
@@ -173,6 +176,7 @@ class Launcher:
             ("HOST SERVER", f"Share this IP with others: {self.local_ip}"),
             ("JOIN SERVER", "Enter another player's IP address"),
             ("PARAMETRES",   "Resolution, volume..."),
+            ("QUITTER",   "Fermer le jeu"),
         ]
         
         start_y = int(280 * scale)
@@ -348,25 +352,28 @@ def launch_game():
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Abyssal Ascension - Multiplayer")
     
-    launcher = Launcher(screen)
-    result = launcher.run()
-    # pygame.mixer.music.stop() # <- stop la musique du menu TUDUTUUTU
-    
-    if result is None:
-        pygame.quit()
-        sys.exit()
-    
-    # Handle different result types
-    if isinstance(result, NetworkMode):
-        game = MultiplayerGame(screen, network_mode=result)
-        game.run()
-    elif isinstance(result, tuple) and result[0] == 'client':
-        mode, server_ip = result
-        game = MultiplayerGame(screen, network_mode=NetworkMode.CLIENT)
-        if not game.connect_as_client(server_ip):
-            print(f"Failed to connect to {server_ip}")
-        else:
+    while True:
+        launcher = Launcher(screen)
+        result = launcher.run()
+        # pygame.mixer.music.stop() # <- stop la musique du menu TUDUTUUTU
+        
+        if result is None:
+            pygame.quit()
+            sys.exit()
+        
+        # Handle different result types
+        if isinstance(result, NetworkMode):
+            game = MultiplayerGame(screen, network_mode=result)
+            game.pause_menu.music_volume = launcher.music_volume
             game.run()
+        elif isinstance(result, tuple) and result[0] == 'client':
+            mode, server_ip = result
+            game = MultiplayerGame(screen, network_mode=NetworkMode.CLIENT)
+            game.pause_menu.music_volume = launcher.music_volume
+            if not game.connect_as_client(server_ip):
+                print(f"Failed to connect to {server_ip}")
+            else:
+                game.run()
     
     pygame.quit()
     sys.exit()

@@ -337,6 +337,8 @@ class Boss(BaseEntity):
         self.y = data.get('y', self.y)
         self.direction = data.get('direction', self.direction)
         self.state = data.get('state', self.state)
+        if data.get('health', self.health) < self.health:
+            self.hit_flash_counter = 15
         self.health = data.get('health', self.health)
         self.is_dead = data.get('is_dead', self.is_dead)
         self.rect.topleft = (int(self.x), int(self.y))

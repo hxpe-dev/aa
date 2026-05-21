@@ -326,12 +326,18 @@ class NetworkClient:
         with self.lock:
             return dict(self.remote_player_states)  # Retourne une copie
 
-    def send_attack(self, enemy_index: int, damage: int):
+    def send_attack(self, enemy_index: int, damage: int, level_index: int):
         # Envoie une attaque sur un ennemi au serveur
         if not self.connected:
             return
         try:
-            send_json(self.socket, {"__attack__": {"enemy_index": enemy_index, "damage": damage}})
+            send_json(self.socket, {
+                "__attack__": {
+                    "enemy_index": enemy_index,
+                    "damage": damage,
+                    "level_index": level_index
+                }
+            })
         except Exception as e:
             print("Network error:", e)
             self.disconnect()

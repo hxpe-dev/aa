@@ -25,7 +25,7 @@ class PauseMenu:
             ("Colliders", "toggle_colliders"),
             ("Volume musique", "volume"),
             ("Volume effets", "sfx_volume"),
-            ("Quitter", "quit")
+            ("Retour au menu principal", "quit")
         ]
         if is_multiplayer:
             all_options.insert(4, ("Nametags", "toggle_nametags"))
@@ -180,6 +180,8 @@ class MultiplayerGame:
         self.local_player_id: Optional[int] = None  # Notre propre ID
         self.local_player: Optional[Player] = None  # Notre joueur local
         self.remote_players: Dict[int, Player] = {}  # Les joueurs des autres dictionnaire du type {id: Player}
+        self.server_disconnected = False
+        self.disconnect_timer = 0
         
         # World        
         self.tilemap = TileMap(ldtk_path="world/world_design.ldtk", level_index=0, scale=2.0)
@@ -187,7 +189,17 @@ class MultiplayerGame:
         self.current_level_index = 0
 
         # Ennemi Jean-Eude
-        self.enemies = self._spawn_enemies_from_map()
+        self.enemies = []
+        self.world_colliders = {} # cache pour stocker les colliders par niveau
+        if self.network_mode == NetworkMode.SERVER:
+            self.all_world_enemies = self._init_all_world_enemies()
+            self.enemies = self.all_world_enemies.get(self.current_level_index, [])
+        elif self.network_mode == NetworkMode.OFFLINE:
+            self.all_world_enemies = {0: self._spawn_enemies_from_map()}
+            self.enemies = self.all_world_enemies[0]
+            self.world_colliders[0] = self.tilemap.get_colliders() # Sauvegarde locale
+        else:
+            self.enemies = self._spawn_enemies_from_map()
         
         # Spawn Point
         self.spawn_x = 200
@@ -259,6 +271,23 @@ class MultiplayerGame:
         else:
             self.connection_status = f"Failed to connect to {server_ip}"
             return False
+
+    def _init_all_world_enemies(self) -> dict:
+        world_enemies = {}
+        current_server_level = self.current_level_index
+        
+        # tous les niveaux (on en a 10)
+        for lvl_idx in range(10): 
+            try:
+                self.tilemap.load_level(lvl_idx)
+                world_enemies[lvl_idx] = self._spawn_enemies_from_map()
+                self.world_colliders[lvl_idx] = self.tilemap.get_colliders()
+            except Exception:
+                break
+                
+        # on remet le tilemap dorigine du serv
+        self.tilemap.load_level(current_server_level)
+        return world_enemies
     
     
     # Applique un PlayerState (position + animation) a un objet Player remote
@@ -343,11 +372,10 @@ class MultiplayerGame:
         if not self.client:
             return
         
-        # Vérifie si on s'est fait déconnecter
-        if not self.client.is_connected():
-            self.connection_status = "Disconnected from server"
-            self.running = False
-            return
+        # verif si on s'est fait deco
+        if not self.client.is_connected() and not self.server_disconnected:
+            self.server_disconnected = True
+            self.disconnect_timer = 180 # 3 secondes normalement
         
         # Si on avait -1 comme ID temporaire et qu'on a reçu notre vrai ID du serveur
         if self.local_player_id == -1 and self.client.player_id is not None:
@@ -433,6 +461,12 @@ class MultiplayerGame:
     def update(self, dt: float):
         # Logique d'update de la syncrho
 
+        if self.server_disconnected:
+            self.disconnect_timer -= 1
+            if self.disconnect_timer <= 0:
+                self.running = False
+            return
+
         # Vérifie si le joueur est mort
         if self.local_player and self.local_player.health <= 0 and not self.game_over:
             self.game_over = True
@@ -470,32 +504,58 @@ class MultiplayerGame:
                                 self.local_player.attack_hit_enemies.append(enemy)
                                 if self.client:
                                     # Client : on envoie l'attaque au serveur, lui applique les dégâts
-                                    self.client.send_attack(i, PLAYER_ATTACK_DAMAGE)
+                                    self.client.send_attack(i, PLAYER_ATTACK_DAMAGE, self.current_level_index)
                                 else:
                                     # Offline ou serveur : on applique directement
                                     enemy.take_damage(PLAYER_ATTACK_DAMAGE)
 
             self._check_door_transitions()
 
-        # Passe tous les joueurs visibles aux ennemis pour la détection
-        all_players = []
+        # tous les joueurs connectés
+        all_players_in_world = []
         if self.local_player:
-            all_players.append(self.local_player)
+            all_players_in_world.append(self.local_player)
         for p in self.remote_players.values():
-            if p.level_index == self.current_level_index:
-                all_players.append(p)
+            all_players_in_world.append(p)
 
-        # Met à jour l'ennemi Jean-Eude
-        for enemy in self.enemies:
-            enemy.update(dt, self.colliders, all_players)
+        if self.network_mode == NetworkMode.SERVER:
+            # le serveur boucle sur toutes les pièces
+            for lvl_idx, enemy_list in self.all_world_enemies.items():
+                # cherche si y a des joueurs dans cette pièce
+                players_in_this_room = []
+                for player in all_players_in_world:
+                    if player.level_index == lvl_idx:
+                        players_in_this_room.append(player)
+                
+                # pièce est vide, on zappe complètement
+                if not players_in_this_room:
+                    continue
+                
+                # récupère les colliders depuis notre cache en mémoire
+                room_colliders = self.world_colliders.get(lvl_idx, [])
+                
+                # met à jour l'IA des monstres de cette pièce
+                for enemy in enemy_list:
+                    enemy.update(dt, room_colliders, players_in_this_room)            
+        else:
+            # Mode client ou offline
+            players_in_my_room = []
+            for player in all_players_in_world:
+                if player.level_index == self.current_level_index:
+                    players_in_my_room.append(player)
+            for enemy in self.enemies:
+                enemy.update(dt, self.colliders, players_in_my_room)
 
         # Serveur : applique les attaques reçues des clients
         if self.server:
             for attack in self.server.get_pending_attacks():
                 idx = attack.get('enemy_index', -1)
                 dmg = attack.get('damage', 0)
-                if 0 <= idx < len(self.enemies):
-                    self.enemies[idx].take_damage(dmg)
+                lvl_ctx = attack.get('level_index', 0)
+                if lvl_ctx in self.all_world_enemies:
+                    target_list = self.all_world_enemies[lvl_ctx]
+                    if 0 <= idx < len(target_list):
+                        target_list[idx].take_damage(dmg)
 
         # Vérifie les événements réseau et met à jour les joueurs distants
         if self.server:
@@ -507,6 +567,8 @@ class MultiplayerGame:
             enemy_states = self.client.get_enemy_states()
             if enemy_states:
                 for state in enemy_states:
+                    if state.get('level_index', -1) != self.current_level_index:
+                        continue
                     idx = state.get('index', -1)
                     if 0 <= idx < len(self.enemies):
                         self.enemies[idx].apply_net_state(state)
@@ -552,12 +614,15 @@ class MultiplayerGame:
             
             # Collecte les états des ennemis pour la synchro
             enemy_states = []
-
-            for index, enemy in enumerate(self.enemies):
-                current_state = enemy.get_net_state()
-                new_state_dict = {"index": index}
-                new_state_dict.update(current_state)
-                enemy_states.append(new_state_dict)                
+            for lvl_idx, enemy_list in self.all_world_enemies.items():
+                for index, enemy in enumerate(enemy_list):
+                    current_state = enemy.get_net_state()
+                    new_state_dict = {
+                        "index": index,
+                        "level_index": lvl_idx
+                    }
+                    new_state_dict.update(current_state)
+                    enemy_states.append(new_state_dict)            
 
             self.server.broadcast_state(enemy_states=enemy_states)  # Envoie à tous les clients
         
@@ -599,11 +664,17 @@ class MultiplayerGame:
             # Charge le nouveau niveau
             self.tilemap.load_level(level_index)
             self.colliders = self.tilemap.get_colliders()
-            self.enemies = self._spawn_enemies_from_map()
-            self._update_music_for_level()
-            self.current_level_index = level_index
-            self.local_player.level_index = level_index
 
+            self.current_level_index = level_index
+            if self.network_mode in (NetworkMode.SERVER, NetworkMode.OFFLINE):
+                if level_index not in self.all_world_enemies:
+                    self.all_world_enemies[level_index] = self._spawn_enemies_from_map()
+                self.enemies = self.all_world_enemies[level_index]
+            else:
+                self.enemies = self._spawn_enemies_from_map()
+
+            self._update_music_for_level()
+            self.local_player.level_index = level_index
             self.local_player.velocity_x = 0
             self.local_player.velocity_y = 0
 
@@ -728,6 +799,25 @@ class MultiplayerGame:
 
     def draw(self):
         # Rendu graphique du jeu vers game_surface (resolution fixe 1920x960)
+        if self.server_disconnected:
+            self.game_surface.fill(BLACK)
+            font = pygame.font.Font(None, 60)
+            text = font.render("Le joueur serveur a quitté", True, WHITE)
+            self.game_surface.blit(text, text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)))
+            game_w = self.game_surface.get_width()
+            game_h = self.game_surface.get_height()
+            screen_w = self.screen.get_width()
+            screen_h = self.screen.get_height()
+            scale = min(screen_w / game_w, screen_h / game_h)
+            scaled_w = int(game_w * scale)
+            scaled_h = int(game_h * scale)
+            offset_x = (screen_w - scaled_w) // 2
+            offset_y = (screen_h - scaled_h) // 2
+            scaled = pygame.transform.scale(self.game_surface, (scaled_w, scaled_h))
+            self.screen.fill(BLACK)
+            self.screen.blit(scaled, (offset_x, offset_y))
+            pygame.display.flip()
+            return
         if self.all_players_dead:
             self._draw_all_dead()
         elif self.game_over:
@@ -759,7 +849,7 @@ class MultiplayerGame:
                     if self.show_nametags:
                         self._draw_player_name(player, player_id)
 
-            # Dessine les ennemis Jean-Eude
+            # Dessine les ennemis
             for enemy in self.enemies:
                 enemy.draw(self.game_surface, offset=(0, 0), show_colliders=self.show_colliders)
 
