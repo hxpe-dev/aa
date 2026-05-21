@@ -172,6 +172,7 @@ class MultiplayerGame:
 
         self.sfx_volume = 0.5
         self.boss_music_playing = False
+        self.gameover_music_playing = False
 
         # Composants Network
         self.server: Optional[NetworkServer] = None
@@ -435,6 +436,10 @@ class MultiplayerGame:
         # Vérifie si le joueur est mort
         if self.local_player and self.local_player.health <= 0 and not self.game_over:
             self.game_over = True
+            pygame.mixer.music.load("assets/game_over.mp3")
+            pygame.mixer.music.set_volume(self.pause_menu.music_volume)
+            pygame.mixer.music.play(-1)
+            self.gameover_music_playing = True
             if self.network_mode != NetworkMode.OFFLINE:
                 self.respawn_cooldown = RESPAWN_COOLDOWN
 
@@ -649,15 +654,16 @@ class MultiplayerGame:
         entering_boss = len(self.tilemap.get_boss_spawns()) > 0
 
         if entering_boss and not self.boss_music_playing:
-            pygame.mixer.music.load("assets/boss.mp3")
+            pygame.mixer.music.load("assets/boss_loop.mp3")
             pygame.mixer.music.set_volume(self.pause_menu.music_volume)
             pygame.mixer.music.play(-1)
             self.boss_music_playing = True
-        elif not entering_boss and self.boss_music_playing:
+        elif not entering_boss and (self.boss_music_playing or self.gameover_music_playing):
             pygame.mixer.music.load("assets/main_theme.mp3")
             pygame.mixer.music.set_volume(self.pause_menu.music_volume)
             pygame.mixer.music.play(-1)
             self.boss_music_playing = False
+            self.gameover_music_playing = False
 
     def _draw_player_name(self, player, player_id):
         name = f"Player {player_id + 1}"
@@ -715,6 +721,10 @@ class MultiplayerGame:
         # Respawn les ennemis en offline ou si tout le monde est mort en multi
         if self.network_mode == NetworkMode.OFFLINE or all_dead:
             self.enemies = self._spawn_enemies_from_map()
+
+        # reset de la musica pr respawn
+        self.boss_music_playing = False
+        self._update_music_for_level()
 
     def draw(self):
         # Rendu graphique du jeu vers game_surface (resolution fixe 1920x960)
