@@ -815,9 +815,15 @@ class MultiplayerGame:
             self.local_player.reset_position(self.spawn_x, self.spawn_y)
             self.local_player.health = PLAYER_MAX_HEALTH
             self.local_player.is_dying = False
+
         # Respawn les ennemis en offline ou si tout le monde est mort en multi
         if self.network_mode == NetworkMode.OFFLINE or all_dead:
             self.enemies = self._spawn_enemies_from_map()
+            if self.network_mode == NetworkMode.SERVER:
+                self.enemies = self.all_world_enemies.get(0, [])
+        else:
+            if self.network_mode == NetworkMode.SERVER:
+                self.enemies = self.all_world_enemies.get(0, [])
 
         # reset de la musica pr respawn
         self.boss_music_playing = False
