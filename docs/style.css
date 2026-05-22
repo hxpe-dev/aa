@@ -87,9 +87,9 @@ body {
 /* BOUTONS AVEC TRANSITION */
 .cta-button,
 .download-button {
+    display: inline-block;
     padding: 1rem 2.5rem;
-    margin-right: 10px;
-    margin-left: 10px;
+    margin: 10px;
     border: none;
     border-radius: 6px;
     background: linear-gradient(135deg, #1e3a8a, #3b82f6);
@@ -215,8 +215,8 @@ body {
     margin-bottom: 1rem;
 }
 
-/* RAPPORT */
-#rapport .container {
+/* TELECHARGEMENTS */
+#telechargements .container {
     text-align: center;
 }
 
