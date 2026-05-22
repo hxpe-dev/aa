@@ -282,8 +282,8 @@ class MultiplayerGame:
         world_enemies = {}
         current_server_level = self.current_level_index
         
-        # tous les niveaux (on en a 10)
-        for lvl_idx in range(10): 
+        # tous les niveaux (on en a 11)
+        for lvl_idx in range(11): 
             try:
                 self.tilemap.load_level(lvl_idx)
                 world_enemies[lvl_idx] = self._spawn_enemies_from_map()
