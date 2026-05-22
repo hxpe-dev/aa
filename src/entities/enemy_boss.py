@@ -13,6 +13,9 @@ class Boss(BaseEntity):
     def __init__(self, x: float, y: float):
         super().__init__(x, y, BOSS_WIDTH, BOSS_HEIGHT)
 
+        self.spawn_base_x = x
+        self.spawn_base_y = y
+
         self.direction = 1
         self.health = BOSS_MAX_HEALTH
         self.is_dead = False
@@ -75,6 +78,18 @@ class Boss(BaseEntity):
         self._move_and_collide(colliders)
 
         self.rect.topleft = (int(self.x), int(self.y))
+
+        if self.y > 1000:
+            self.x = self.spawn_base_x
+            self.y = self.spawn_base_y
+            self.velocity_x = 0.0
+            self.velocity_y = 0.0
+            self.is_grounded = False
+            self.rect.topleft = (int(self.x), int(self.y))
+            # Si boss en slam on annule
+            if self.state == BossState.SLAM:
+                self._end_attack()
+
 
     def draw(self, surface: pygame.Surface, offset=(0, 0), show_colliders=True):
         if self.is_dead:
