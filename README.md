@@ -14,3 +14,8 @@ py launcher.py
 cd src
 pyinstaller --clean --noconsole --contents-directory "." --icon="assets/icon.ico" --add-data "assets;assets" --add-data "world;world" launcher.py
 ```
+
+
+### Lancer le site internet localement
+
+Ouvrir le fichier `docs/index.html` dans un navigateur internet.
