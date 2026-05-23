@@ -21,9 +21,8 @@ class Boss(BaseEntity):
         self.is_dead = False
         self.hit_flash_counter = 0
 
-        # Placeholder rectangle violet
-        self.image = pygame.Surface((BOSS_WIDTH, BOSS_HEIGHT))
-        self.image.fill((120, 0, 160))
+        self.sprite = pygame.transform.scale(pygame.image.load(f'assets\\boss\\standing.png').convert_alpha(), (BOSS_WIDTH, BOSS_HEIGHT))
+        self.image = self.sprite
         self.rect = self.image.get_rect(topleft=(x, y))
 
         self.target_player = None

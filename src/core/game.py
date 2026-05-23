@@ -793,7 +793,7 @@ class MultiplayerGame:
         font_small = pygame.font.Font(None, 40)
         text = font_big.render("DEFAITE TOTALE", True, (200, 50, 50))
         self.game_surface.blit(text, text.get_rect(center=(cx, cy - 80)))
-        sub1 = font_small.render("Tous les joueurs sont morts (vous êtes peut-être pas fait pour ça).", True, WHITE)
+        sub1 = font_small.render("Tous les joueurs sont morts.", True, WHITE)
         self.game_surface.blit(sub1, sub1.get_rect(center=(cx, cy + 10)))
         sub2 = font_small.render("R pour recommencer", True, GRAY)
         self.game_surface.blit(sub2, sub2.get_rect(center=(cx, cy + 55)))
