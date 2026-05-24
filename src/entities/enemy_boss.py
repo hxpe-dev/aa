@@ -185,8 +185,9 @@ class Boss(BaseEntity):
         self.sword_phase = 0
         self.sword_timer = BOSS_SWORD_PREP
         self.sword_hit_this_attack = False
-        # cooldown pour le prochain coup (plus court en Phase 2)
-        self.sword_cooldown = 45 if self.phase2 else 90
+        self.sword_cooldown = 90
+        if self.phase2:
+            self.sword_cooldown = 45
 
     def _start_slam(self):
         self.state = BossState.SLAM
