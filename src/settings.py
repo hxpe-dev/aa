@@ -48,10 +48,10 @@ ENEMY_AGGRO_RANGE = 200
 
 # Boss
 BOSS_MAX_HEALTH = 500
-BOSS_WIDTH = 192
-BOSS_HEIGHT = 192
+BOSS_WIDTH = 256
+BOSS_HEIGHT = 320
 BOSS_WALK_SPEED = 3
-BOSS_MELEE_RANGE = 150
+BOSS_MELEE_RANGE = 280
 BOSS_SLAM_JUMP_FORCE = -22
 BOSS_SLAM_FALL_SPEED = 22
 BOSS_SHOCKWAVE_DAMAGE = 20
@@ -60,8 +60,8 @@ BOSS_SHOCKWAVE_WIDTH = 67
 BOSS_SWORD_DAMAGE = 30
 BOSS_SWORD_PREP = 35  # frames de preparation avant le coup (pour que le joueur ait le temps de réagir)
 BOSS_SWORD_ACTIVE = 12  # frames ou la hitbox existe
-BOSS_SWORD_RANGE_W = 120  # largeur de la hitbox épée
-BOSS_SWORD_RANGE_H = 80  # hauteur de la hitbox épée
+BOSS_SWORD_RANGE_W = 100  # largeur de la hitbox épée
+BOSS_SWORD_RANGE_H = 280  # hauteur de la hitbox épée
 
 # Vie de Jean-Eude
 JEANEUDE_MAX_HEALTH = 50

@@ -21,7 +21,11 @@ class Boss(BaseEntity):
         self.is_dead = False
         self.hit_flash_counter = 0
 
-        self.sprite = pygame.transform.scale(pygame.image.load(f'assets\\boss\\standing.png').convert_alpha(), (BOSS_WIDTH, BOSS_HEIGHT))
+        self.standing_sprite = pygame.transform.scale(pygame.image.load(f'assets\\boss\\standing.png').convert_alpha(), (BOSS_WIDTH, BOSS_HEIGHT))
+        self.attack_sprites = [
+            pygame.transform.scale(pygame.image.load(f'assets\\boss\\attack-{i+1}.png').convert_alpha(), (BOSS_WIDTH, BOSS_HEIGHT)) for i in range(3)
+        ]
+        self.sprite = self.standing_sprite
         self.image = self.sprite
         self.rect = self.image.get_rect(topleft=(x, y))
 
@@ -30,6 +34,7 @@ class Boss(BaseEntity):
         
         self.idle_timer = 60
         self.sword_cooldown = 0 # Empêche le spam de l'attaque mêlée
+        self.slam_cooldown = 0 # Empeche le spam du slam
         
         # Phase 2 déclenchée à 50% de vie
         self.phase2 = False
@@ -71,8 +76,11 @@ class Boss(BaseEntity):
         # Diminution des CD
         if self.sword_cooldown > 0:
             self.sword_cooldown -= 1
+        if self.slam_cooldown > 0:
+            self.slam_cooldown -= 1
 
         self._run_state_machine(players)
+        self._update_animation()
         self._apply_gravity()
         self._move_and_collide(colliders)
 
@@ -103,17 +111,18 @@ class Boss(BaseEntity):
             img.fill((200, 0, 0, 0), special_flags=pygame.BLEND_RGBA_ADD)
         else:
             img = self.image
+            
+        if self.direction == -1:
+            img = pygame.transform.flip(img, True, False)
 
         surface.blit(img, (rx, ry))
 
-        if self.state == BossState.SWORD and self.sword_phase == 1:
-            pygame.draw.rect(surface, (255, 220, 0), self.get_sword_rect().move(offset[0], offset[1]), 3)
-
-        if self.shockwave_rect:
-            pygame.draw.rect(surface, (255, 140, 0), self.shockwave_rect.move(offset[0], offset[1]), 4)
-
         if show_colliders:
             pygame.draw.rect(surface, (200, 0, 255), self.rect.move(offset[0], offset[1]), 2)
+            if self.state == BossState.SWORD and self.sword_phase == 1:
+                pygame.draw.rect(surface, (255, 220, 0), self.get_sword_rect().move(offset[0], offset[1]), 3)
+            if self.shockwave_rect:
+                pygame.draw.rect(surface, (255, 140, 0), self.shockwave_rect.move(offset[0], offset[1]), 4)
 
     def _run_state_machine(self, players):
         if self.state == BossState.IDLE:
@@ -142,20 +151,29 @@ class Boss(BaseEntity):
         self.velocity_x = self.direction * speed
 
         if dist < BOSS_MELEE_RANGE:
-            # Si le joueur est proche mais que l'épée est en cooldown, le boss prend une décision imprévisible
             if self.sword_cooldown <= 0:
-                # 70% de chance de mettre un coup d'épée, 30% de chance de faire un Slam intant
-                if random.random() < 0.70:
+                # 80% de chance de faire une attaque melee, 20% de chance de faire un slam
+                if random.random() < 0.80 or self.slam_cooldown > 0:
                     self.velocity_x = 0
                     self._start_sword()
                 else:
                     self._start_slam()
                 return
             else:
-                # L'épée est en cooldown ! Pour éviter de rester passif, il a 40% de chance de punir l'esquive du joueur avec un Slam
-                if random.random() < 0.40 and self.is_grounded:
+                # 40% de chance de faire un slam si pas dans la range melee
+                if self.slam_cooldown <= 0 and random.random() < 0.40 and self.is_grounded:
                     self._start_slam()
                     return
+
+        self.idle_timer -= 1
+        if self.idle_timer <= 0:
+            if self.sword_cooldown <= 0:
+                self.velocity_x = 0
+                self._start_sword()
+            elif self.slam_cooldown <= 0:
+                self._start_slam()
+            else:
+                self.idle_timer = 30
 
         # Gestion du timer de l'état IDLE (comportement à distance)
         self.idle_timer -= 1
@@ -174,6 +192,9 @@ class Boss(BaseEntity):
         self.state = BossState.SLAM
         self.slam_phase = 0
         self.velocity_x = 0  # Immobilisation au sol avant le saut
+        self.slam_cooldown = 180
+        if self.phase2 :
+            self.slam_cooldown = 120
 
     def _state_sword(self, players):
         self.velocity_x = 0
@@ -203,12 +224,15 @@ class Boss(BaseEntity):
                 self._end_attack()
 
     def get_sword_rect(self) -> pygame.Rect:
+        half = self.rect.width // 2
         if self.direction == 1:
-            ax = self.rect.right
+            ax = self.rect.centerx
+            w = half + BOSS_SWORD_RANGE_W
         else:
             ax = self.rect.left - BOSS_SWORD_RANGE_W
+            w = BOSS_SWORD_RANGE_W + half
         ay = self.rect.centery - BOSS_SWORD_RANGE_H // 2
-        return pygame.Rect(int(ax), int(ay), BOSS_SWORD_RANGE_W, BOSS_SWORD_RANGE_H)
+        return pygame.Rect(int(ax), int(ay), w, BOSS_SWORD_RANGE_H)
 
     def _state_slam(self, players):
         if self.slam_phase == 0:
@@ -261,7 +285,21 @@ class Boss(BaseEntity):
         self.velocity_x = 0
         self.state = BossState.IDLE
         self.shockwave_rect = None
-        self.idle_timer = 40 if self.phase2 else 75
+        self.idle_timer = 75
+        if self.phase2:
+            self.idle_timer = 40
+        
+    def _update_animation(self):
+        if self.state == BossState.SWORD:
+            if self.sword_phase == 0:
+                if self.sword_timer > BOSS_SWORD_PREP // 2:
+                    self.image = self.attack_sprites[0]
+                else:
+                    self.image = self.attack_sprites[1]
+            else:
+                self.image = self.attack_sprites[2]
+        else:
+            self.image = self.standing_sprite
 
     def _find_closest_player(self, players: list):
         closest = None
