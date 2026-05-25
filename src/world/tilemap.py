@@ -9,9 +9,7 @@ except ImportError:
 
 
 class TileMap:
-    def __init__(self, ldtk_path: Optional[str] = None, level_index: int = 0,
-                 scale: float = 1.0, level_data: List[List[int]] = None,
-                 tile_size: int = TILE_SIZE):
+    def __init__(self, ldtk_path: Optional[str] = None, level_index: int = 0, scale: float = 1.0, level_data: List[List[int]] = None, tile_size: int = TILE_SIZE):
         self.tile_size = tile_size
         self._ldtk_level: Optional[LDtkLevel] = None
         self.spawn_point: Tuple[float, float] = (100.0, 100.0)
